@@ -1,8 +1,8 @@
 ;; How to use
 
-;; 1. roseusを起動
+;; 1. execute roseus
 ;; 2. (load "hand-walk-test-kai.l")
-;; 3. (jaxoninit)  ;; (jaxon_red-init) 実機ではこれも実行
+;; 3. (jaxoninit)  ;; (jaxon_red-init) do this in real machine
 ;;(send *ri* :start-auto-balancer)
 ;; 4. (initial-pose)
 ;;(send *ri* :angle-vector (send *robot* :angle-vector))
