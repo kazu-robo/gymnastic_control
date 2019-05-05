@@ -4,7 +4,7 @@
 ;; 2. (load "hand-walk-test-kai.l")
 ;; 3. (jaxoninit)  ;; (jaxon_red-init) do this in real machine
 ;;(send *ri* :start-auto-balancer)
-;; 4. (initial-pose)
+;; 4. (initial-pose2)
 ;;(send *ri* :angle-vector (send *robot* :angle-vector))
 ;; 5. (generate-hand-walk-pattern)
 ;; 
