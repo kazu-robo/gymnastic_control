@@ -6,7 +6,9 @@
 ;;(send *ri* :start-auto-balancer)
 ;; 4. (initial-pose2)
 ;;(send *ri* :angle-vector (send *robot* :angle-vector))
-;; 5. (generate-hand-walk-pattern)
+;; 5. (hand-stand)
+;;(send *ri* :angle-vector (send *robot* :angle-vector))
+;; 6. (generate-hand-walk-pattern)
 ;; 
 (defmethod gait-generator
   (:solve-angle-vector
