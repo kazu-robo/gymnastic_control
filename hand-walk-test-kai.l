@@ -3,7 +3,9 @@
 ;; 1. execute roseus
 ;; 2. (load "hand-walk-test-kai.l")
 ;; 3. (jaxoninit)  ;; (jaxon_red-init) do this in real machine
-;;(send *ri* :start-auto-balancer)
+;;(send *ri* :stop-st)
+;;(send *ri* :stop-auto-balancer)
+;;(send *ri* :stop-impedance :arms)
 ;; 4. (initial-pose2)
 ;;(send *ri* :angle-vector (send *robot* :angle-vector))
 ;; 5. (hand-stand)
