@@ -127,7 +127,7 @@
 
 (defun hand-stand ()
   (let* (
-	 (centroid-coords
+	  (centroid-coords
 	  (send *robot* :centroid :copy-worldcoords))
 	 (rleg-pos
 	  (send *robot* :rleg :end-coords :worldpos))
@@ -153,8 +153,39 @@
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
 	  :target-centroid-pos centroid-coords
 	  )))
-    
-  
+
+(defun kyakuzenkyo ()
+  (let* (
+	 (centroid-coords
+	  (send *robot* :centroid :copy-worldcoords))
+	 (rleg-pos
+	  (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos
+	  (send *robot* :lleg :end-coords :worldpos))
+	 (rarm-pos
+	  (send *robot* :rarm :end-coords :worldpos))
+	 (larm-pos
+	  (send *robot* :larm :end-coords :worldpos))
+	 (target-coords 
+	  (list
+	   (make-coords :pos rarm-pos :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos larm-pos :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (+ 900 (elt rleg-pos 0)) (elt rleg-pos 1) (elt rarm-pos 2)) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (+ 900 (elt lleg-pos 0)) (elt lleg-pos 1) (elt larm-pos 2)) :rpy (float-vector 0 0 0))
+	  ))
+	 (limbs
+	  (list
+	   (send *robot* :rarm :end-coords)
+	   (send *robot* :larm :end-coords)
+	   (send *robot* :rleg :end-coords)
+	   (send *robot* :lleg :end-coords)
+	   )))
+    (send *robot*
+	  :fullbody-inverse-kinematics target-coords
+	  :move-target limbs
+	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
+	  :target-centroid-pos centroid-coords
+	  )))
 
 (defun generate-hand-walk-pattern ()
   (let* ((fs-list)
