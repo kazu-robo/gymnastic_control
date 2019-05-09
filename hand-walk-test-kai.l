@@ -93,7 +93,7 @@
   (objects (list *robot* *pole1* *pole2*))
   )
 
-(defun initial-pose2 ()
+(defun initial-pose2 (&key (step-width 700))
   (send *robot* :reset-pose)
   (let* (
 	 (centroid-coords
@@ -104,8 +104,8 @@
 	  (send *robot* :lleg :end-coords :worldpos))
 	 (target-coords 
 	  (list
-	   (make-coords :pos (float-vector (elt centroid-coords 0) -350 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   (make-coords :pos (float-vector (elt centroid-coords 0) 350 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (* -0.5 step-width) 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (* 0.5 step-width) 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (elt rleg-pos 2)) :rpy (float-vector 0 0 0))
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
 	  ))
@@ -127,16 +127,17 @@
 
 (defun hand-stand ()
   (let* (
-	  (centroid-coords
-	  (send *robot* :centroid :copy-worldcoords))
-	 (rleg-pos
-	  (send *robot* :rleg :end-coords :worldpos))
-	 (lleg-pos
-	  (send *robot* :lleg :end-coords :worldpos))
+	 (centroid-coords (send *robot* :centroid))
+	 (rleg-pos (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos (send *robot* :lleg :end-coords :worldpos))
+	 (larm-coords (send *robot* :larm :end-coords :copy-worldcoords))
+	 (rarm-coords (send *robot* :rarm :end-coords :copy-worldcoords))
 	 (target-coords 
 	  (list
-	   (make-coords :pos (float-vector (elt centroid-coords 0) -350 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   (make-coords :pos (float-vector (elt centroid-coords 0) 350 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) -350 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) 350 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (concatenate float-vector (subseq centroid-coords 0 1) (subseq (send rarm-coords :worldpos) 1 3)) :rpy (car (send rarm-coords :rpy-angle)))
+	   (make-coords :pos (concatenate float-vector (subseq centroid-coords 0 1) (subseq (send larm-coords :worldpos) 1 3)) :rpy (car (send larm-coords :rpy-angle)))
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (+ 100 (elt rleg-pos 2))) :rpy (float-vector 0 0 0))
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (+ 100 (elt lleg-pos 2))) :rpy (float-vector 0 0 0))
 	  ))
@@ -187,7 +188,7 @@
 	  :target-centroid-pos centroid-coords
 	  )))
 
-(defun generate-hand-walk-pattern ()
+(defun generate-hand-walk-pattern (&key (step-time 0.5) (real t))
   (let* ((fs-list)
          (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
          (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
@@ -204,12 +205,12 @@
                         (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector 400 0 0) :world)
                         ))
     (setq walk-pattern
-    (send *robot* :calc-walk-pattern-from-footstep-list fs-list
-          :all-limbs '(:rarm :larm)
-          :init-pose-function #'(lambda ())
-          :debug-view :no-message
-          :default-step-time 0.5
-          ))
+	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
+		:all-limbs '(:rarm :larm)
+		:init-pose-function #'(lambda ())
+		:debug-view :no-message
+		:default-step-time step-time
+		))
 
     (setq av-list nil)
     (setq tm-list nil)
@@ -221,7 +222,10 @@
       )
     (nreverse av-list)
     (nreverse tm-list)
-    (send *ri* :angle-vector-sequence-full av-list tm-list)
+    (when real
+      (warn "real machine move")
+      (send *ri* :angle-vector-sequence-full av-list tm-list)
+      )
     )
   )
 
