@@ -155,37 +155,48 @@
 	  :target-centroid-pos centroid-coords
 	  )))
 
-(defun kyakuzenkyo ()
+(defun kyakuzenkyo ();;(&key (leg-xpos-target 800) (leg-zpos-target 50))
   (let* (
 	 (centroid-coords
-	  (send *robot* :centroid :copy-worldcoords))
+	  (send *robot* :centroid))
 	 (rleg-pos
 	  (send *robot* :rleg :end-coords :worldpos))
 	 (lleg-pos
 	  (send *robot* :lleg :end-coords :worldpos))
 	 (rarm-pos
-	  (send *robot* :rarm :end-coords :worldpos))
+	  (send *robot* :rarm :end-coords :copy-worldcoords))
 	 (larm-pos
-	  (send *robot* :larm :end-coords :worldpos))
+	  (send *robot* :larm :end-coords :copy-worldcoords))
 	 (target-coords 
 	  (list
-	   (make-coords :pos rarm-pos :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   (make-coords :pos larm-pos :rpy (float-vector 0 (deg2rad 90) 0));larm
-	   (make-coords :pos (float-vector (+ 800 (elt rleg-pos 0)) (elt rleg-pos 1) (+ 50 (elt rarm-pos 2))) :rpy (float-vector 0 0 0))
-	   (make-coords :pos (float-vector (+ 800 (elt lleg-pos 0)) (elt lleg-pos 1) (+ 50 (elt larm-pos 2))) :rpy (float-vector 0 0 0))
+	   rarm-pos
+	   larm-pos
+	  ;; (make-coords :pos (float-vector (+ leg-xpos-target (elt rleg-pos 0)) (elt rleg-pos 1) (+ leg-zpos-target (elt rarm-pos 2))) :rpy (float-vector 0 0 0))
+	  ;; (make-coords :pos (float-vector (+ leg-xpos-target (elt lleg-pos 0)) (elt lleg-pos 1) (+ leg-zpos-target (elt larm-pos 2))) :rpy (float-vector 0 0 0))
 	  ))
 	 (limbs
 	  (list
 	   (send *robot* :rarm :end-coords)
 	   (send *robot* :larm :end-coords)
-	   (send *robot* :rleg :end-coords)
-	   (send *robot* :lleg :end-coords)
+	   ;;(send *robot* :rleg :end-coords)
+	  ;; (send *robot* :lleg :end-coords)
 	   )))
+    (send *robot* :lleg_joint0 :joint-angle 0)
+    (send *robot* :lleg_joint1 :joint-angle 0)
+    (send *robot* :lleg_joint2 :joint-angle -90)
+    (send *robot* :lleg_joint3 :joint-angle 0)
+    (send *robot* :lleg_joint4 :joint-angle 84)
+    (send *robot* :rleg_joint0 :joint-angle 0)
+    (send *robot* :rleg_joint1 :joint-angle 0)
+    (send *robot* :rleg_joint2 :joint-angle -90)
+    (send *robot* :rleg_joint3 :joint-angle 0)
+    (send *robot* :rleg_joint4 :joint-angle 84)
+    
     (send *robot*
 	  :fullbody-inverse-kinematics target-coords
 	  :move-target limbs
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
-	  :target-centroid-pos centroid-coords
+	  :target-centroid-pos (float-vector (+ -30 (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
 	  )))
 
 (defun generate-hand-walk-pattern (&key (step-time 0.5) (real t))
