@@ -201,6 +201,21 @@
 	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-pos rarm-pos) :worldpos))
 	  )))
 
+(defun kyakuzenkyo-for-ri ()
+  (kyakuzenkyo :hip-angle -45 :com-offset -30)
+  (setq av-list nil)
+  (setq tm-list nil)
+  (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
+  (push 10000 tm-list)
+  (kyakuzenkyo)
+  (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
+  (push 10000 tm-list)
+  (nreverse av-list)
+  (nreverse tm-list)
+  ;;do (send *ri* :angle-vector-sequence-full av-list tm-list) after kyakuzenkyo-for-ri
+  )
+  
+
 (defun generate-hand-walk-pattern (&key (step-time 0.5) (stride 50) (real t))
   (let* ((fs-list)
          (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
