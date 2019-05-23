@@ -11,7 +11,7 @@
 ;; 5. (hand-stand)
 ;;(send *ri* :angle-vector (send *robot* :angle-vector))
 ;; 6. (generate-hand-walk-pattern)
-;; 
+;;
 (defmethod gait-generator
   (:solve-angle-vector
     (support-leg support-leg-coords swing-leg-coords cog
@@ -64,9 +64,12 @@
 
 (defun jaxoninit ()
   (load "package://hrpsys_ros_bridge_tutorials/euslisp/jaxon_red-interface.l")
-  (setq *robot* (jaxon_red))
+  ;; (load "package://control_tools/log-tools.l")
+  (load "package://control_tools/play-hrpsysfile.l")
+  (unless (boundp '*robot*) (setq *robot* (jaxon_red)))
   (send *robot* :fix-leg-to-coords (make-coords))
   (objects (list *robot*))
+  (when (y-or-n-p "make *ri*?") (jaxon_red-init))
   )
 
 (defun initial-pose ()
@@ -103,7 +106,7 @@
 	  (send *robot* :rleg :end-coords :worldpos))
 	 (lleg-pos
 	  (send *robot* :lleg :end-coords :worldpos))
-	 (target-coords 
+	 (target-coords
 	  (list
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (* -0.5 step-width) 650) :rpy (float-vector 0 (deg2rad 90) 0));rarm
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (* 0.5 step-width) 650) :rpy (float-vector 0 (deg2rad 90) 0));larm
@@ -123,6 +126,10 @@
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
 	  :target-centroid-pos (float-vector (elt centroid-coords 0) (elt centroid-coords 1) (elt centroid-coords 2))
 	  )
+
+    (when (y-or-n-p "Move to initial pose?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
     ))
 
 
@@ -133,7 +140,7 @@
 	 (lleg-pos (send *robot* :lleg :end-coords :worldpos))
 	 (larm-coords (send *robot* :larm :end-coords :copy-worldcoords))
 	 (rarm-coords (send *robot* :rarm :end-coords :copy-worldcoords))
-	 (target-coords 
+	 (target-coords
 	  (list
 	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) -350 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
 	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) 350 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
@@ -154,9 +161,14 @@
 	  :move-target limbs
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
 	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-coords rarm-coords) :worldpos))
-	  )))
+	  )
 
-(defun kyakuzenkyo (&key (hip-angle -90) (com-offset -40));;(&key (leg-xpos-target 800) (leg-zpos-target 50))
+    (when (y-or-n-p "Stand by hand?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
+    ))
+
+(defun kyakuzenkyo-pose (&key (hip-angle -90) (com-offset -40));;(&key (leg-xpos-target 800) (leg-zpos-target 50))
   (let* (
 	 (centroid-coords
 	  (send *robot* :centroid))
@@ -168,7 +180,7 @@
 	  (send *robot* :rarm :end-coords :copy-worldcoords))
 	 (larm-pos
 	  (send *robot* :larm :end-coords :copy-worldcoords))
-	 (target-coords 
+	 (target-coords
 	  (list
 	   rarm-pos
 	   larm-pos
@@ -182,17 +194,17 @@
 	   ;;(send *robot* :rleg :end-coords)
 	  ;; (send *robot* :lleg :end-coords)
 	   )))
-    (send *robot* :lleg_joint0 :joint-angle 0)
-    (send *robot* :lleg_joint1 :joint-angle 0)
-    (send *robot* :lleg_joint2 :joint-angle hip-angle)
-    (send *robot* :lleg_joint3 :joint-angle 0)
-    (send *robot* :lleg_joint4 :joint-angle 84)
-    (send *robot* :rleg_joint0 :joint-angle 0)
-    (send *robot* :rleg_joint1 :joint-angle 0)
-    (send *robot* :rleg_joint2 :joint-angle hip-angle)
-    (send *robot* :rleg_joint3 :joint-angle 0)
-    (send *robot* :rleg_joint4 :joint-angle 84)
-    
+    (send *robot* :lleg :crotch-y :joint-angle 0)
+    (send *robot* :lleg :crotch-r :joint-angle 0)
+    (send *robot* :lleg :crotch-p :joint-angle hip-angle)
+    (send *robot* :lleg :knee-p   :joint-angle 0)
+    (send *robot* :lleg :ankle-p  :joint-angle 84)
+    (send *robot* :rleg :crotch-y :joint-angle 0)
+    (send *robot* :rleg :crotch-r :joint-angle 0)
+    (send *robot* :rleg :crotch-p :joint-angle hip-angle)
+    (send *robot* :rleg :knee-p   :joint-angle 0)
+    (send *robot* :rleg :ankle-p  :joint-angle 84)
+
     (send *robot*
 	  :fullbody-inverse-kinematics target-coords
 	  :move-target limbs
@@ -201,20 +213,28 @@
 	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-pos rarm-pos) :worldpos))
 	  )))
 
-(defun kyakuzenkyo-for-ri ()
-  (kyakuzenkyo :hip-angle -45 :com-offset -30)
+(defun kyakuzenkyo ()
   (setq av-list nil)
   (setq tm-list nil)
+
+  (when (not (is-simulation));; for real
+    (kyakuzenkyo-pose :hip-angle -45 :com-offset -30)
+    (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
+    (push 10000 tm-list)
+    )
+
+  (kyakuzenkyo-pose)
   (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
-  (push 10000 tm-list)
-  (kyakuzenkyo)
-  (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
-  (push 10000 tm-list)
+  (push 20000 tm-list)
+
   (nreverse av-list)
   (nreverse tm-list)
-  ;;do (send *ri* :angle-vector-sequence-full av-list tm-list) after kyakuzenkyo-for-ri
+
+  (when (y-or-n-p "Do kyakuzenkyo?")
+    (send *ri* :angle-vector-sequence-full av-list tm-list)
+    (send *ri* :wait-interpolation))
   )
-  
+
 
 (defun generate-hand-walk-pattern (&key (step-time 0.5) (stride 50) (real t))
   (let* ((fs-list)
@@ -257,3 +277,23 @@
     )
   )
 
+(defun play-kyakuzenkyo ()
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+
+  (initial-pose2)
+
+  (warning-message 4 "stop st, abc and ic~%")
+  (send *ri* :stop-st)
+  (send *ri* :stop-auto-balancer)
+  (send *ri* :stop-impedance :arms)
+
+  (hand-stand)
+
+  (kyakuzenkyo)
+  ;; (send *ri* :save-log "/tmp/kyakuzenkyo")
+
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "kyakuzenkyo")
+    )
+  )
