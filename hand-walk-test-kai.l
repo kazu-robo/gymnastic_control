@@ -108,8 +108,8 @@
 	  (send *robot* :lleg :end-coords :worldpos))
 	 (target-coords
 	  (list
-	   (make-coords :pos (float-vector (elt centroid-coords 0) (* -0.5 step-width) 650) :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   (make-coords :pos (float-vector (elt centroid-coords 0) (* 0.5 step-width) 650) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (* -0.5 step-width) 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (* 0.5 step-width) 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (elt rleg-pos 2)) :rpy (float-vector 0 0 0))
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
 	  ))
