@@ -198,12 +198,12 @@
     (send *robot* :lleg :crotch-r :joint-angle 0)
     (send *robot* :lleg :crotch-p :joint-angle hip-angle)
     (send *robot* :lleg :knee-p   :joint-angle 0)
-    (send *robot* :lleg :ankle-p  :joint-angle 84)
+    (send *robot* :lleg :ankle-p  :joint-angle 45)
     (send *robot* :rleg :crotch-y :joint-angle 0)
     (send *robot* :rleg :crotch-r :joint-angle 0)
     (send *robot* :rleg :crotch-p :joint-angle hip-angle)
     (send *robot* :rleg :knee-p   :joint-angle 0)
-    (send *robot* :rleg :ankle-p  :joint-angle 84)
+    (send *robot* :rleg :ankle-p  :joint-angle 45)
 
     (send *robot*
 	  :fullbody-inverse-kinematics target-coords
