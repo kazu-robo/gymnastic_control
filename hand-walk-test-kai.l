@@ -163,7 +163,7 @@
 	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-coords rarm-coords) :worldpos))
 	  )
 
-    (when (y-or-n-p "Stand by hand?")
+    (when (y-or-n-p "Ready to stand by hand?")
       (send *ri* :angle-vector (send *robot* :angle-vector))
       (send *ri* :wait-interpolation))
     ))
@@ -272,8 +272,9 @@
     (nreverse tm-list)
     (when real
       (warn "real machine move")
+      (when (y-or-n-p "Walk by hand?")
       (send *ri* :angle-vector-sequence-full av-list tm-list)
-      )
+      (send *ri* :wait-interpolation))
     )
   )
 
@@ -297,3 +298,18 @@
     (save-log :fname "kyakuzenkyo")
     )
   )
+
+(defun pb-walk-demo ()
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+
+  (initial-pose2)
+
+  (warning-message 4 "stop st, abc and ic~%")
+  (send *ri* :stop-st)
+  (send *ri* :stop-auto-balancer)
+  (send *ri* :stop-impedance :arms)
+
+  (hand-stand)
+
+  (generate-hand-walk-pattern)
