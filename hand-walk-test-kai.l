@@ -276,8 +276,9 @@
       (send *ri* :angle-vector-sequence-full av-list tm-list)
       (send *ri* :wait-interpolation))
     )
+    )
   )
-
+  
 (defun play-kyakuzenkyo ()
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
@@ -313,4 +314,7 @@
   (hand-stand)
 
   (generate-hand-walk-pattern)
-)
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "pb-walk-demo")
+    )
+  )
