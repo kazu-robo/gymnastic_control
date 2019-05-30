@@ -213,17 +213,17 @@
 	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-pos rarm-pos) :worldpos))
 	  )))
 
-(defun kyakuzenkyo ()
+(defun kyakuzenkyo (&key (com-offset -40) (com-offset-middle -30))
   (setq av-list nil)
   (setq tm-list nil)
 
   (when (not (is-simulation));; for real
-    (kyakuzenkyo-pose :hip-angle -45 :com-offset -30)
+    (kyakuzenkyo-pose :hip-angle -45 :com-offset com-offset-middle)
     (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
     (push 10000 tm-list)
     )
 
-  (kyakuzenkyo-pose)
+  (kyakuzenkyo-pose :com-offset com-offset)
   (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
   (push 20000 tm-list)
 
@@ -281,9 +281,10 @@
       (send *ri* :wait-interpolation))
     )
     )
+  
   )
   
-(defun play-kyakuzenkyo ()
+(defun kyakuzenkyo-demo (&key (com-offset -40) (com-offset-middle -30))
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
 
@@ -296,7 +297,7 @@
 
   (hand-stand)
 
-  (kyakuzenkyo)
+  (kyakuzenkyo :com-offset com-offset :com-offset-middle com-offset-middle)
   ;; (send *ri* :save-log "/tmp/kyakuzenkyo")
 
   (when (y-or-n-p "Save log?")
@@ -304,7 +305,7 @@
     )
   )
 
-(defun pb-walk-demo ()
+(defun pb-walk-demo (&key (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
 
@@ -317,7 +318,7 @@
 
   (hand-stand)
 
-  (generate-hand-walk-pattern)
+  (generate-hand-walk-pattern :step-time step-time :stride stride :real real :dt dt :step-height step-height :debug-view debug-view)
   (when (y-or-n-p "Save log?")
     (save-log :fname "pb-walk-demo")
     )
