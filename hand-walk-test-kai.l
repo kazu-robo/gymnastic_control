@@ -283,7 +283,98 @@
     )
   
   )
+
+(defun generate-hand-walk-pattern2 (&key (foot-height 10) (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
+  (let* ((fs-list)
+         (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
+         (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
+         )
+    (setq fs-list (list (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector 0 0 0) :world)
+                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector stride 0 0) :world)
+                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 2 stride) 0 0) :world)
+                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 3 stride) 0 0) :world)
+                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 4 stride) 0 0) :world)
+                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 5 stride) 0 0) :world)
+                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 6 stride) 0 0) :world)
+                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 7 stride) 0 0) :world)
+                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 8 stride) 0 0) :world)
+                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 9 stride) 0 0) :world)
+                        ))
+
+
+    (when (y-or-n-p "want to put leg up?")
+      
+      (let* (
+             (centroid-coords
+              (send *robot* :centroid :copy-worldcoords))
+             (rleg-pos
+              (send *robot* :rleg :end-coords :worldpos))
+             (lleg-pos
+              (send *robot* :lleg :end-coords :worldpos))
+             (rarm-coords
+              (send *robot* :rarm :end-coords :copy-worldcoords))
+             (larm-coords
+              (send *robot* :larm :end-coords :copy-worldcoords))
+             (target-coords
+              (list
+               rarm-coords
+               larm-coords
+               (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) foot-height) :rpy (float-vector 0 0 0))
+               (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) foot-height) :rpy (float-vector 0 0 0))
+               ))
+             (limbs
+              (list
+               (send *robot* :rarm :end-coords)
+               (send *robot* :larm :end-coords)
+               (send *robot* :rleg :end-coords)
+               (send *robot* :lleg :end-coords)
+               )))
+        (send *robot*
+              :fullbody-inverse-kinematics target-coords
+              :move-target limbs
+              :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
+              :target-centroid-pos (float-vector (elt centroid-coords 0) (elt centroid-coords 1) (elt centroid-coords 2))
+              )
+
+
+        (when (y-or-n-p "Move to leg-up pose?")
+          (send *ri* :angle-vector (send *robot* :angle-vector))
+          (send *ri* :wait-interpolation))
+        ))
+        (warning-message 3 "generating walking pattern ...~%")    
+    (setq walk-pattern
+	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
+		:all-limbs '(:rarm :larm)
+		:init-pose-function #'(lambda ())
+		:debug-view debug-view
+		:default-step-time step-time
+        :default-step-height step-height
+        :dt dt
+		))
+
+    (setq av-list nil)
+    (setq tm-list nil)
+    (dolist (a walk-pattern)
+      ;; a is like (:angle-vector #f(0 ...) :middle middle :time 0 :other other)
+      ;; then, (memq :time a) extracts (:time 0 :other other)
+      (push (concatenate float-vector (cadr (memq :angle-vector a)) #f(0 0 0 0)) av-list)
+      ;; (push (* 1000 (cadr (memq :time a))) tm-list) ;; convert from sec to msec
+      (push (* 1000 dt) tm-list) ;; convert from sec to msec
+      )
+    (nreverse av-list)
+    (nreverse tm-list)
+    (when real
+      (warn "real machine move")
+      (when (y-or-n-p "Walk by hand?")
+      (send *ri* :angle-vector-sequence-full av-list tm-list)
+      (send *ri* :wait-interpolation))
+    )
+    )
   
+  )
+
+
+
 (defun kyakuzenkyo-demo (&key (com-offset -40) (com-offset-middle -30))
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
@@ -319,6 +410,25 @@
   (hand-stand)
 
   (generate-hand-walk-pattern :step-time step-time :stride stride :real real :dt dt :step-height step-height :debug-view debug-view)
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "pb-walk-demo")
+    )
+  )
+
+(defun pb-walk-demo2 (&key (foot-height 10) (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+
+  (initial-pose2)
+
+  (warning-message 4 "stop st, abc and ic~%")
+  (send *ri* :stop-st)
+  (send *ri* :stop-auto-balancer)
+  (send *ri* :stop-impedance :arms)
+
+  (hand-stand)
+
+  (generate-hand-walk-pattern2 :foot-height foot-height :step-time step-time :stride stride :real real :dt dt :step-height step-height :debug-view debug-view)
   (when (y-or-n-p "Save log?")
     (save-log :fname "pb-walk-demo")
     )
