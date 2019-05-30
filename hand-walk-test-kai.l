@@ -236,7 +236,7 @@
   )
 
 
-(defun generate-hand-walk-pattern (&key (step-time 0.5) (stride 50) (real t))
+(defun generate-hand-walk-pattern (&key (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
   (let* ((fs-list)
          (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
          (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
@@ -252,12 +252,15 @@
                         (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 8 stride) 0 0) :world)
                         (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 9 stride) 0 0) :world)
                         ))
+    (warning-message 3 "generating walking pattern ...~%")
     (setq walk-pattern
 	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
 		:all-limbs '(:rarm :larm)
 		:init-pose-function #'(lambda ())
-		:debug-view :no-message
+		:debug-view debug-view
 		:default-step-time step-time
+        :default-step-height step-height
+        :dt dt
 		))
 
     (setq av-list nil)
@@ -266,7 +269,8 @@
       ;; a is like (:angle-vector #f(0 ...) :middle middle :time 0 :other other)
       ;; then, (memq :time a) extracts (:time 0 :other other)
       (push (concatenate float-vector (cadr (memq :angle-vector a)) #f(0 0 0 0)) av-list)
-      (push (cadr (memq :time a)) tm-list)
+      ;; (push (* 1000 (cadr (memq :time a))) tm-list) ;; convert from sec to msec
+      (push (* 1000 dt) tm-list) ;; convert from sec to msec
       )
     (nreverse av-list)
     (nreverse tm-list)
