@@ -350,6 +350,11 @@
 		:default-step-time step-time
         :default-step-height step-height
         :dt dt
+        :solve-angle-vector-args (list :collision-avoidance-link-pair (list (list (send *robot* :rarm :wrist-p :child-link) (send *robot* :rleg_joint2 :child-link )) (list (send *robot* :larm :wrist-p :child-link) (send *robot* :lleg_joint2 :child-link)))
+                                       :avoid-collision-null-gain 10
+                                       :avoid-collision-joint-gain 0
+                                       :avoid-collision-distance 1000
+                                       :stop 200)
 		))
 
     (setq av-list nil)
