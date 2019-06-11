@@ -521,3 +521,24 @@
     (save-log :fname "pb-walk-demo")
     )
   )
+
+
+(defun pb-walk-one-step (&key (foot-height 10) (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+
+  (initial-pose2)
+
+  (warning-message 4 "stop st, abc and ic~%")
+  (send *ri* :stop-st)
+  (send *ri* :stop-auto-balancer)
+  (send *ri* :stop-impedance :arms)
+
+  (hand-stand)
+  
+
+  (generate-hand-one-stop :foot-height foot-height :step-time step-time :stride stride :real real :dt dt :step-height step-height :debug-view debug-view)
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "pb-walk-one-step")
+    )
+  )
