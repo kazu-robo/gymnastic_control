@@ -88,7 +88,7 @@
 
 
 
-(defun initial-pose (&key (box-height 850) (step-width 700) (hand-dis 400))
+(defun initial-pose (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
   (send *robot* :reset-pose)
   (send *robot* :fix-leg-to-coords (make-coords))
   (let* (
@@ -100,8 +100,8 @@
 	  (send *robot* :lleg :end-coords :worldpos))
 	 (target-coords
 	  (list
-	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) box-height) :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) box-height) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (elt rleg-pos 2)) :rpy (float-vector 0 0 0))
 	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
 	  ))
@@ -116,7 +116,7 @@
 	  :fullbody-inverse-kinematics target-coords
 	  :move-target limbs
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
-	  :target-centroid-pos (float-vector (elt centroid-coords 0) (elt centroid-coords 1) (elt centroid-coords 2))
+	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
 	  )
 
     (when (y-or-n-p "Move to initial pose?")
@@ -124,24 +124,113 @@
       (send *ri* :wait-interpolation))
     ))
 
+(defun hand-balance (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
+
+  (let* (
+	 (centroid-coords
+	  (send *robot* :centroid :copy-worldcoords))
+	 (rleg-pos
+	  (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos
+	  (send *robot* :lleg :end-coords :worldpos))
+	 (target-coords
+	  (list
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (elt rleg-pos 2)) :rpy (float-vector 0 0 0))
+;;	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
+	  ))
+	 (limbs
+	  (list
+	   (send *robot* :rarm :end-coords)
+	   (send *robot* :larm :end-coords)
+	   (send *robot* :rleg :end-coords)
+;;	   (send *robot* :lleg :end-coords)
+	   )))
+    (send *robot*
+	  :fullbody-inverse-kinematics target-coords
+	  :move-target limbs
+	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
+	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
+	  )
+
+    (when (y-or-n-p "Move to hand balance pose?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
+    ))
+
 
 ;;6/14kokomade
 
-(defun hand-stand (&key (com-offset -10))
+(defun stop-auto-control ()
+  (send *ri* :stop-st)
+  (send *ri* :stop-impedance :arms)
+  (send *ri* :stop-auto-balancer))
+
+(defun turiage-pose (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0) (torso-x 0) (torso-z 0) (torso-angle 50) (leg-x 0) (leg-z 0))
+  (send *robot* :reset-pose)
+  (send *robot* :fix-leg-to-coords (make-coords))
   (let* (
-	 (centroid-coords (send *robot* :centroid))
-	 (rleg-pos (send *robot* :rleg :end-coords :worldpos))
-	 (lleg-pos (send *robot* :lleg :end-coords :worldpos))
-	 (larm-coords (send *robot* :larm :end-coords :copy-worldcoords))
-	 (rarm-coords (send *robot* :rarm :end-coords :copy-worldcoords))
+	 (centroid-coords
+	  (send *robot* :centroid :copy-worldcoords))
+	 (rleg-pos
+	  (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos
+	  (send *robot* :lleg :end-coords :worldpos))
+     (torso-pos
+      (send (send *robot* :torso-end-coords) :worldpos))
 	 (target-coords
 	  (list
-	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) -350 700) :rpy (float-vector 0 (deg2rad 90) 0));rarm
-	   ;; (make-coords :pos (float-vector (elt centroid-coords 0) 350 700) :rpy (float-vector 0 (deg2rad 90) 0));larm
-	   (make-coords :pos (concatenate float-vector (subseq centroid-coords 0 1) (subseq (send rarm-coords :worldpos) 1 3)) :rpy (car (send rarm-coords :rpy-angle)))
-	   (make-coords :pos (concatenate float-vector (subseq centroid-coords 0 1) (subseq (send larm-coords :worldpos) 1 3)) :rpy (car (send larm-coords :rpy-angle)))
-	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (+ 100 (elt rleg-pos 2))) :rpy (float-vector 0 0 0))
-	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (+ 100 (elt lleg-pos 2))) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (send (make-coords :pos rleg-pos :rpy (float-vector 0 0 0)) :translate (float-vector leg-x 0 leg-z))
+	   (send (make-coords :pos lleg-pos :rpy (float-vector 0 0 0)) :translate (float-vector leg-x 0 leg-z))
+       (send (make-coords :pos torso-pos :rpy (float-vector 0 (deg2rad torso-angle) 0)) :translate (float-vector torso-x 0 torso-z) :world)
+       ))
+	 (limbs
+	  (list
+	   (send *robot* :rarm :end-coords)
+	   (send *robot* :larm :end-coords)
+	   (send *robot* :rleg :end-coords)
+	   (send *robot* :lleg :end-coords)
+       (send *robot* :torso-end-coords)
+	   )))
+    (send *robot*
+	  :fullbody-inverse-kinematics target-coords
+	  :move-target limbs
+	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
+	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
+	  )
+
+    (when (y-or-n-p "Move to turiage pose?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
+    ))
+
+(defun paratune (&key (shoulder 0) (elbow 0) (wrist 0))
+  (send *robot* :arms :shoulder-p :joint-angle shoulder)
+  (send *robot* :arms :elbow-p :joint-angle elbow)
+  (send *robot* :arms :wrist-p :joint-angle wrist)
+  (when (y-or-n-p "Ready to move?")
+    (send *ri* :angle-vector (send *robot* :angle-vector))
+    (send *ri* :wait-interpolation))
+  )
+
+
+(defun right-foot-step (&key (com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (arm-push 390) (foot-step-height 750))
+  (let* (
+	 (centroid-coords
+	  (send *robot* :centroid :copy-worldcoords))
+	 (rleg-pos
+	  (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos
+	  (send *robot* :lleg :end-coords :worldpos))
+	 (target-coords
+	  (list
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.8 step-width) (- box-height arm-push)) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
 	  ))
 	 (limbs
 	  (list
@@ -154,153 +243,73 @@
 	  :fullbody-inverse-kinematics target-coords
 	  :move-target limbs
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
-	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-coords rarm-coords) :worldpos))
+;;	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
 	  )
 
-    (when (y-or-n-p "Ready to stand by hand?")
+    (when (y-or-n-p "ready to put right foot up?")
       (send *ri* :angle-vector (send *robot* :angle-vector))
       (send *ri* :wait-interpolation))
     ))
 
-(defun kyakuzenkyo-pose (&key (hip-angle -90) (com-offset -40));;(&key (leg-xpos-target 800) (leg-zpos-target 50))
+(defun foot-on-step (&key (com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (arm-push 390))
   (let* (
 	 (centroid-coords
-	  (send *robot* :centroid))
+	  (send *robot* :centroid :copy-worldcoords))
 	 (rleg-pos
 	  (send *robot* :rleg :end-coords :worldpos))
 	 (lleg-pos
 	  (send *robot* :lleg :end-coords :worldpos))
-	 (rarm-pos
-	  (send *robot* :rarm :end-coords :copy-worldcoords))
-	 (larm-pos
-	  (send *robot* :larm :end-coords :copy-worldcoords))
 	 (target-coords
 	  (list
-	   rarm-pos
-	   larm-pos
-	  ;; (make-coords :pos (float-vector (+ leg-xpos-target (elt rleg-pos 0)) (elt rleg-pos 1) (+ leg-zpos-target (elt rarm-pos 2))) :rpy (float-vector 0 0 0))
-	  ;; (make-coords :pos (float-vector (+ leg-xpos-target (elt lleg-pos 0)) (elt lleg-pos 1) (+ leg-zpos-target (elt larm-pos 2))) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.8 step-width) (- box-height arm-push)) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.8 step-width) (- box-height arm-push)) :rpy (float-vector 0 0 0))
 	  ))
 	 (limbs
 	  (list
 	   (send *robot* :rarm :end-coords)
 	   (send *robot* :larm :end-coords)
-	   ;;(send *robot* :rleg :end-coords)
-	  ;; (send *robot* :lleg :end-coords)
+	   (send *robot* :rleg :end-coords)
+	   (send *robot* :lleg :end-coords)
 	   )))
-    (send *robot* :lleg :crotch-y :joint-angle 0)
-    (send *robot* :lleg :crotch-r :joint-angle 0)
-    (send *robot* :lleg :crotch-p :joint-angle hip-angle)
-    (send *robot* :lleg :knee-p   :joint-angle 0)
-    (send *robot* :lleg :ankle-p  :joint-angle 45)
-    (send *robot* :rleg :crotch-y :joint-angle 0)
-    (send *robot* :rleg :crotch-r :joint-angle 0)
-    (send *robot* :rleg :crotch-p :joint-angle hip-angle)
-    (send *robot* :rleg :knee-p   :joint-angle 0)
-    (send *robot* :rleg :ankle-p  :joint-angle 45)
-
     (send *robot*
 	  :fullbody-inverse-kinematics target-coords
 	  :move-target limbs
 	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
-	  ;; :target-centroid-pos (float-vector (+ -40 (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
-	  :target-centroid-pos (v+ (float-vector com-offset 0 0) (send (midcoords 0.5 larm-pos rarm-pos) :worldpos))
-	  )))
+;;	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
+	  )
 
-(defun kyakuzenkyo (&key (com-offset -40) (com-offset-middle -30))
-  (setq av-list nil)
-  (setq tm-list nil)
+    (when (y-or-n-p "ready to put both foot up?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
+    ))
 
-  (when (not (is-simulation));; for real
-    (kyakuzenkyo-pose :hip-angle -45 :com-offset com-offset-middle)
-    (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
-    (push 10000 tm-list)
-    )
-
-  (kyakuzenkyo-pose :com-offset com-offset)
-  (push (concatenate float-vector (send *robot* :angle-vector) #f(0 0 0 0)) av-list)
-  (push 20000 tm-list)
-
-  (nreverse av-list)
-  (nreverse tm-list)
-
-  (when (y-or-n-p "Do kyakuzenkyo?")
-    (send *ri* :angle-vector-sequence-full av-list tm-list)
-    (send *ri* :wait-interpolation))
-  )
-
-
-(defun generate-hand-walk-pattern2 (&key (foot-height 10) (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
+(defun generate-right-foot-step (&key (step-time 3) (real t) (dt 0.002) (step-height 50) (debug-view :no-message) (com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (arm-push 390))
   (let* ((fs-list)
+         (centroid-coords (send *robot* :centroid :copy-worldcoords))
          (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
          (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
+         (rleg-end-coords (send *robot* :rleg :end-coords :copy-worldcoords))
          )
-    (setq fs-list (list (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector 0 0 0) :world)
-                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector stride 0 0) :world)
-                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 2 stride) 0 0) :world)
-                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 3 stride) 0 0) :world)
-                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 4 stride) 0 0) :world)
-                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 5 stride) 0 0) :world)
-                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 6 stride) 0 0) :world)
-                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 7 stride) 0 0) :world)
-                        (send (make-coords :coords (send rarm-end-coords :copy-worldcoords) :name :rarm) :translate (float-vector (* 8 stride) 0 0) :world)
-                        (send (make-coords :coords (send larm-end-coords :copy-worldcoords) :name :larm) :translate (float-vector (* 8 stride) 0 0) :world)
+    (setq fs-list (list (send (make-coords :coords rleg-end-coords :name :rleg) :translate (float-vector 0 0 0) :world)
+                        (send (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.8 step-width) (- box-height arm-push)) :rpy (float-vector 0 0 0) :name :rleg) :translate (float-vector 0 0 0) :world)
                         ))
 
-
-    (when (y-or-n-p "want to put leg up?")
-      
-      (let* (
-             (centroid-coords
-              (send *robot* :centroid :copy-worldcoords))
-             (rleg-pos
-              (send *robot* :rleg :end-coords :worldpos))
-             (lleg-pos
-              (send *robot* :lleg :end-coords :worldpos))
-             (rarm-coords
-              (send *robot* :rarm :end-coords :copy-worldcoords))
-             (larm-coords
-              (send *robot* :larm :end-coords :copy-worldcoords))
-             (target-coords
-              (list
-               rarm-coords
-               larm-coords
-               (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) foot-height) :rpy (float-vector 0 0 0))
-               (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) foot-height) :rpy (float-vector 0 0 0))
-               ))
-             (limbs
-              (list
-               (send *robot* :rarm :end-coords)
-               (send *robot* :larm :end-coords)
-               (send *robot* :rleg :end-coords)
-               (send *robot* :lleg :end-coords)
-               )))
-        (send *robot*
-              :fullbody-inverse-kinematics target-coords
-              :move-target limbs
-              :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
-              :target-centroid-pos (float-vector (elt centroid-coords 0) (elt centroid-coords 1) (elt centroid-coords 2))
-              )
-
-
-        (when (y-or-n-p "Move to leg-up pose?")
-          (send *ri* :angle-vector (send *robot* :angle-vector))
-          (send *ri* :wait-interpolation))
-        ))
-        (warning-message 3 "generating walking pattern ...~%")    
+    (warning-message 3 "generating walking pattern ...~%")    
     (setq walk-pattern
 	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
-		:all-limbs '(:rarm :larm)
+		:all-limbs '(:rarm :larm :rleg)
 		:init-pose-function #'(lambda ())
 		:debug-view debug-view
 		:default-step-time step-time
         :default-step-height step-height
         :dt dt
-        :solve-angle-vector-args (list :collision-avoidance-link-pair (list (list (send *robot* :rarm :wrist-p :child-link) (send *robot* :rleg_joint2 :child-link )) (list (send *robot* :larm :wrist-p :child-link) (send *robot* :lleg_joint2 :child-link)))
-                                       :avoid-collision-null-gain 10
-                                       :avoid-collision-joint-gain 0
-                                       :avoid-collision-distance 200
-                                       :stop 200)
+;;        :solve-angle-vector-args (list :collision-avoidance-link-pair (list (list (send *robot* :rarm :wrist-p :child-link) (send *robot* :rleg_joint2 :child-link )) (list (send *robot* :larm :wrist-p :child-link) (send *robot* :lleg_joint2 :child-link)))
+  ;;                                     :avoid-collision-null-gain 10
+;;                                   :avoid-collision-joint-gain 0
+;;                                       :avoid-collision-distance 200 
+;;                                       :stop 200)
 		))
 
     (setq av-list nil)
@@ -325,46 +334,135 @@
   )
 
 
-(defun kyakuzenkyo-demo (&key (com-offset -40) (com-offset-middle -30))
+(defun fk-right-step-outside ()
+  (send *robot* :rleg :crotch-p :joint-angle 20) 
+  (send *robot* :rleg :crotch-y :joint-angle -58)
+  (send *robot* :rleg :knee-p :joint-angle 70) 
+  (send *robot* :arms :elbow-p :joint-angle -45)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+  
+  (send *robot* :torso :waist-y :joint-angle 35)
+  (send *robot* :rleg :crotch-p :joint-angle -90)
+  (send *robot* :rleg :knee-p :joint-angle 90)
+  (send *robot* :lleg :crotch-p :joint-angle 0)
+  (send *robot* :lleg :knee-p :joint-angle 0)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+
+
+  (send *robot* :rleg :knee-p :joint-angle 90)
+  (send *robot* :rleg :crotch-r :joint-angle 30)
+  (send *robot* :rleg :crotch-y :joint-angle -58)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+  
+  (send *robot* :rleg :ankle-p :joint-angle 10)
+  (send *robot* :rleg :crotch-y :joint-angle -50)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+  )
+
+  
+ 
+(defun box-climb (&key (foot-on-com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (foot-on-arm-push 390))
+
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
-
-  (initial-pose2)
-
-  (warning-message 4 "stop st, abc and ic~%")
-  (send *ri* :stop-st)
-  (send *ri* :stop-auto-balancer)
-  (send *ri* :stop-impedance :arms)
-
-  (hand-stand)
-
-  (kyakuzenkyo :com-offset com-offset :com-offset-middle com-offset-middle)
-  ;; (send *ri* :save-log "/tmp/kyakuzenkyo")
-
-  (when (y-or-n-p "Save log?")
-    (save-log :fname "kyakuzenkyo")
+  
+  (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (stop-auto-control)
+  (initial-pose :com-move 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 380 :arm-push 20 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 30 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 100 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 150 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 170 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 200 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 230 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 250 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 270 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 290 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 310 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 330 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 370 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 390 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (fk-right-step-outside)
+  (when (y-or-n-p "save log?")
+    (save-log :fname "box-climb")
     )
+  )
+
+(defun generate-box-climb (&key (foot-on-com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (foot-on-arm-push 390) (step-height 50) (step-time 3))
+  (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (stop-auto-control)
+  (initial-pose :com-move 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 380 :arm-push 20 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 30 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 100 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 150 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 170 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 200 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 230 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 250 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 270 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 290 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 310 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 330 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 370 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 390 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (generate-right-foot-step :com-move foot-on-com-move :arm-push foot-on-arm-push :box-height box-height :step-width step-width :hand-dis hand-dis :step-time step-time :step-height step-height)
   )
 
 
 
-(defun pb-walk-demo2 (&key (foot-height 10) (step-time 0.5) (stride 50) (real t) (dt 0.002) (step-height 50) (debug-view :no-message))
-  (warning-message 4 "log clear~%")
-  (send *ri* :start-log)
+(defun box-climb-both-foot (&key (foot-on-com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (foot-on-arm-push 390))
+  (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (stop-auto-control)
+  (initial-pose :com-move 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 380 :arm-push 20 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 30 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 100 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 150 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 170 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 200 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 230 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 250 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 270 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 290 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 310 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 330 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 370 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 390 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (foot-on-step :com-move foot-on-com-move :arm-push foot-on-arm-push :box-height box-height :step-width step-width :hand-dis hand-dis)
+  )
 
-  (initial-pose2)
 
-  (warning-message 4 "stop st, abc and ic~%")
-  (send *ri* :stop-st)
-  (send *ri* :stop-auto-balancer)
-  (send *ri* :stop-impedance :arms)
-
-  (hand-stand)
-
-  (generate-hand-walk-pattern2 :foot-height foot-height :step-time step-time :stride stride :real real :dt dt :step-height step-height :debug-view debug-view)
-  (when (y-or-n-p "Save log?")
-    (save-log :fname "pb-walk-demo")
-    )
+(defun box-climb-knee (&key (foot-on-com-move 390) (box-height 850) (step-width 700) (hand-dis 400) (foot-on-arm-push 390))
+  (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (stop-auto-control)
+  (initial-pose :com-move 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 380 :arm-push 20 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 30 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 100 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 420 :arm-push 150 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 170 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 400 :arm-push 200 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 230 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 250 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 270 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 290 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 310 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 330 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 370 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (initial-pose :com-move 390 :arm-push 390 :box-height box-height :step-width step-width :hand-dis hand-dis)
+  (send *robot* :rleg :crotch-p :joint-angle -90)
+  (send *robot* :rleg :knee-p :joint-angle 180)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
   )
 
 
