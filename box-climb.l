@@ -3,7 +3,9 @@
 ;; 1. execute roseus
 ;; 2. (load "box-climb.l")
 ;; 3. (jaxoninit) 
-;; 4. (initial-pose)
+;; 4. make *ri* -> y
+;; 5. (box-climb)
+;; 6. move to initial pose? -> y y y y y y y~~~~~~~~~
 
 
 
