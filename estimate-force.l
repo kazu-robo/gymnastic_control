@@ -64,29 +64,47 @@
   )
 
 
-(defun calc-zmp-from-force-sensor (&key (d ~~~~~))
+(defun calc-zmp-from-force-sensor (&key (d 30))
   ;;(send *ri* :force-vector :larm) (send *ri* :moment-vector :larm) to get value from 6 axis sensor
   ;;leave about the arms' sensor, make this by legs' sensor only for chukan's experiment
+  ;; d = height from sensor to touch point
+  
   (let*
-      ((rleg-fv (send *ri* :force-vector :rleg))
-       (lleg-fv (send *ri* :force-vector :lleg))
-       (rarm-fv (send *ri* :force-vector :rarm))
-       (larm-fv (send *ri* :force-vector :larm))
-       (rleg-mv (send *ri* :moment-vector :rleg))
-       (lleg-mv (send *ri* :moment-vector :lleg))
-       (rarm-mv (send *ri* :moment-vector :rarm))
-       (larm-mv (send *ri* :moment-vector :larm))
+      ((rleg-fv (send *ri* :state :force-vector :rleg))
+       (lleg-fv (send *ri* :state :force-vector :lleg))
+       (rarm-fv (send *ri* :state :force-vector :rarm))
+       (larm-fv (send *ri* :state :force-vector :larm))
+       (rleg-mv (send *ri* :state :moment-vector :rleg))
+       (lleg-mv (send *ri* :state :moment-vector :lleg))
+       (rarm-mv (send *ri* :state :moment-vector :rarm))
+       (larm-mv (send *ri* :state :moment-vector :larm));; :state is needed because it renews the values
+       ;; (send *ri* :state) to renew all the values
 
-       (p-rleg-x (/ (- (- (cadr rleg-mv)) (* (car rleg-fv) d)) (* (caddr rleg-fv) 1.0)))
-       (p-rleg-y (/ (- (car rleg-mv) (* (cadr rleg-fv) d)) (* (caddr rleg-fv) 1.0)))
-       (p-lleg-x (/ (- (- (cadr lleg-mv)) (* (car lleg-fv) d)) (* (caddr lleg-fv) 1.0)))
-       (p-lleg-y (/ (- (car lleg-mv) (* (cadr lleg-fv) d)) (* (caddr lleg-fv) 1.0)))
+       (p-rleg-x (/ (- (- (elt rleg-mv 1)) (* (elt rleg-fv 0) d)) (* (elt rleg-fv 2) 1.0)))
+       (p-rleg-y (/ (- (elt rleg-mv 0) (* (elt rleg-fv 1) d)) (* (elt rleg-fv 2) 1.0)))
+       (p-lleg-x (/ (- (- (elt lleg-mv 1)) (* (elt lleg-fv 0) d)) (* (elt lleg-fv 2) 1.0)))
+       (p-lleg-y (/ (- (elt lleg-mv 0) (* (elt lleg-fv 1) d)) (* (elt lleg-fv 2) 1.0)))
 
-       (p-x (/ (+ (* p-rleg-x (caddr rleg-fv)) (* p-lleg-x (caddr lleg-fv))) (* 1.0 (+ (caddr rleg-fv) (caddr lleg-fv)))))
-       (p-y (/ (+ (* p-rleg-y (caddr rleg-fv)) (* p-lleg-y (caddr lleg-fv))) (* 1.0 (+ (caddr rleg-fv) (caddr lleg-fv)))))
+       (p-x (/ (+ (* p-rleg-x (elt rleg-fv 2)) (* p-lleg-x (elt lleg-fv 2))) (* 1.0 (+ (elt rleg-fv 2) (elt lleg-fv 2)))))
+       (p-y (/ (+ (* p-rleg-y (elt rleg-fv 2)) (* p-lleg-y (elt lleg-fv 2))) (* 1.0 (+ (elt rleg-fv 2) (elt lleg-fv 2)))))
        )
 
     (setq zmp-from-force-sensor (list p-x p-y))
   )
+  )
 
+(defun calc-zmp-fs ()
+  
+  (send *ri* :state)
+  (setq zmp-fs (send *ri* :zmp-vector))
+  )
 
+(defun calc-zmp-imu ()
+  (send *ri* :state)
+  (setq zmp-imu (send *ri* :act-capture-point-vector))
+  )
+
+(defun calc-zmp-diff ()
+  (send *ri* :state)
+  (setq zmp-diff (- (send *ri* :act-capture-point-vector) (send *ri* :zmp-vector)))
+  )
