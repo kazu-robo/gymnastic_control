@@ -106,5 +106,5 @@
 
 (defun calc-zmp-diff ()
   (send *ri* :state)
-  (setq zmp-diff (- (send *ri* :act-capture-point-vector) (send *ri* :zmp-vector)))
+  (setq zmp-diff (v- (send *ri* :act-capture-point-vector) (send *ri* :zmp-vector)))
   )
