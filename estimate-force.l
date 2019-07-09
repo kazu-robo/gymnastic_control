@@ -274,3 +274,42 @@
   )
     
 
+(defun jikken-shimon-after (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+  
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-Fz is))
+    (print (/ sum-diff-mass 10.0))
+    )
+
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop st?")
+    (send *ri* :stop-st)
+    )
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop abc?")
+    (send *ri* :stop-auto-balancer)
+    )
+
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-mass is))
+    (print (/ sum-diff-mass 10.0))
+    )
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "jikken for chukan-shimon")
+    )
+
+  )
+    
+
