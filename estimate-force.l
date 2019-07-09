@@ -111,7 +111,7 @@
 
 
 
-(defun check-z (&key (jaxon-mass 130))
+(defun check-z (&key (jaxon-mass 130));;jaxon-mass[kg]
   (send *ri* :state)
   (let*
       ((rleg-fv (send *ri* :force-vector :rleg))
@@ -124,8 +124,9 @@
        (larm-mv (send *ri* :moment-vector :larm))
        )
 
+    (setq jaxon-mg (* jaxon-mass 9.8));;jaxon-mg = [N]
     (setq sum-of-fv-z (+ (elt rleg-fv 2) (elt lleg-fv 2)));;when using arms, add rarm-fv and larm-fv
-    (setq diff-mass (- sum-of-fv-z jaxon-mass))
+    (setq diff-Fz (+ sum-of-fv-z jaxon-mg));;fv-z is minus when ground pushes leg
     
     (print 'lleg-force-vector)
     (print lleg-fv)
@@ -137,9 +138,11 @@
     (print rleg-mv)
     (print '(sum of force-vector-z is))
     (print sum-of-fv-z)
-    (print '(force-vector(z) - mass is))
-    (print diff-mass)
-    ))
+    (print '(force-vector(z) - mass*g is))
+    (print diff-Fz)
+    )
+  (unix:sleep 1)
+  )
 
 
 (defun initial-pose (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
@@ -149,7 +152,7 @@
 	 (centroid-coords
 	  (send *robot* :centroid :copy-worldcoords))
 	 (rleg-pos
-	  (spend *robot* :rleg :end-coords :worldpos))
+	  (send *robot* :rleg :end-coords :worldpos))
 	 (lleg-pos
 	  (send *robot* :lleg :end-coords :worldpos))
 	 (target-coords
@@ -184,7 +187,7 @@
   (send *ri* :stop-auto-balancer))
 
 
-(defun jikken-shimon ()
+(defun jikken-shimon (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
   (send *robot* :reset-pose)
@@ -196,43 +199,44 @@
     (setq sum-diff-mass 0)
     (while (< i 10)
       (check-z)
-      (setq sum-diff-mass (+ diff-mass sum-diff-mass))
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
       (setq i (+ i 1))
       )
-    (print '(average of diff-mass is))
+    (print '(average of diff-Fz is))
     (print (/ sum-diff-mass 10.0))
     )
 
   (when (y-or-n-p "pushing robot?")
     (let ((i 0))
       (while (< i 10)
-        (send *ri* :state)
-          (let*
-              ((rleg-fv (send *ri* :force-vector :rleg))
-               (lleg-fv (send *ri* :force-vector :lleg))
-               (rarm-fv (send *ri* :force-vector :rarm))
-               (larm-fv (send *ri* :force-vector :larm))
-               (rleg-mv (send *ri* :moment-vector :rleg))
-               (lleg-mv (send *ri* :moment-vector :lleg))
-               (rarm-mv (send *ri* :moment-vector :rarm))
-               (larm-mv (send *ri* :moment-vector :larm))
-               )
-
-            (print 'lleg-force-vector)
-            (print lleg-fv)
-            (print 'rleg-force-vector)
-            (print rleg-fv)
-            (print 'lleg-moment-vector)
-            (print lleg-mv)
-            (print 'rleg-moment-vector)
-            (print rleg-mv)
-            )
+        (check-z)
+;          (let*
+;              ((rleg-fv (send *ri* :force-vector :rleg))
+;               (lleg-fv (send *ri* :force-vector :lleg))
+ ;              (rarm-fv (send *ri* :force-vector :rarm))
+  ;             (larm-fv (send *ri* :force-vector :larm))
+   ;            (rleg-mv (send *ri* :moment-vector :rleg))
+    ;           (lleg-mv (send *ri* :moment-vector :lleg))
+     ;          (rarm-mv (send *ri* :moment-vector :rarm))
+      ;         (larm-mv (send *ri* :moment-vector :larm))
+       ;        )
+;
+ ;           (print 'lleg-force-vector)
+  ;          (print lleg-fv)
+   ;         (print 'rleg-force-vector)
+    ;        (print rleg-fv)
+     ;       (print 'lleg-moment-vector)
+      ;      (print lleg-mv)
+       ;     (print 'rleg-moment-vector)
+        ;    (print rleg-mv)
+         ;   )
           (setq i (+ i 1))
+
           )
       )
     )
 
-  (initial-pose)
+  (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis :com-move com-move :arm-push arm-push)
   (when (y-or-n-p "put bar, box, or something around chest? ready to stop abc, st, and ic(arms)?")
     (stop-auto-control)
     )
@@ -241,7 +245,7 @@
     (setq sum-diff-mass 0)
     (while (< i 10)
       (check-z)
-      (setq sum-diff-mass (+ diff-mass sum-diff-mass))
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
       (setq i (+ i 1))
       )
     (print '(average of diff-mass is))
