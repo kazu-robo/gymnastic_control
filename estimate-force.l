@@ -176,6 +176,7 @@
 	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
 	  )
 
+    (send *robot* :legs :move-end-pos #f(0 0 300))
     (when (y-or-n-p "Move to initial pose?")
       (send *ri* :angle-vector (send *robot* :angle-vector))
       (send *ri* :wait-interpolation))
@@ -191,8 +192,10 @@
   (warning-message 4 "log clear~%")
   (send *ri* :start-log)
   (send *robot* :reset-pose)
+
   (when (y-or-n-p "move to reset-pose?")
     (send *ri* :angle-vector (send *robot* :angle-vector))
+    (send *ri* :wait-interpolation)
     )
   
   (let ((i 0))
@@ -237,8 +240,21 @@
     )
 
   (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis :com-move com-move :arm-push arm-push)
-  (when (y-or-n-p "put bar, box, or something around chest? ready to stop abc, st, and ic(arms)?")
-    (stop-auto-control)
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-mass is))
+    (print (/ sum-diff-mass 10.0))
+    )
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop st?")
+    (send *ri* :stop-st)
+    )
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop abc?")
+    (send *ri* :stop-auto-balancer)
     )
 
   (let ((i 0))
