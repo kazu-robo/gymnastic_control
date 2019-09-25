@@ -182,6 +182,45 @@
       (send *ri* :wait-interpolation))
     ))
 
+(defun initial-pose2 (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
+  (send *robot* :reset-pose)
+  (send *robot* :fix-leg-to-coords (make-coords))
+  (let* (
+	 (centroid-coords
+	  (send *robot* :centroid :copy-worldcoords))
+	 (rleg-pos
+	  (send *robot* :rleg :end-coords :worldpos))
+	 (lleg-pos
+	  (send *robot* :lleg :end-coords :worldpos))
+	 (target-coords
+	  (list
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* -0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));rarm
+	   (make-coords :pos (float-vector (+ hand-dis (elt centroid-coords 0)) (* 0.5 step-width) (- box-height arm-push)) :rpy (float-vector 0 (deg2rad 90) 0));larm
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt rleg-pos 1) (elt rleg-pos 2)) :rpy (float-vector 0 0 0))
+	   (make-coords :pos (float-vector (elt centroid-coords 0) (elt lleg-pos 1) (elt lleg-pos 2)) :rpy (float-vector 0 0 0))
+	  ))
+	 (limbs
+	  (list
+	   (send *robot* :rarm :end-coords)
+	   (send *robot* :larm :end-coords)
+	   (send *robot* :rleg :end-coords)
+	   (send *robot* :lleg :end-coords)
+	   )))
+    (send *robot*
+	  :fullbody-inverse-kinematics target-coords
+	  :move-target limbs
+	  :link-list (mapcar #' (lambda (limb) (send *robot* :link-list (send limb :parent))) limbs)
+	  :target-centroid-pos (float-vector (+ com-move (elt centroid-coords 0)) (elt centroid-coords 1) (elt centroid-coords 2))
+	  )
+
+
+    (when (y-or-n-p "Move to initial pose?")
+      (send *ri* :angle-vector (send *robot* :angle-vector))
+      (send *ri* :wait-interpolation))
+    ))
+
+
+
 (defun stop-auto-control ()
   (send *ri* :stop-st)
   (send *ri* :stop-impedance :arms)
@@ -273,6 +312,93 @@
 
   )
     
+
+(defun jikken-shimon-tyokuritu (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
+  (warning-message 4 "log clear~%")
+  (send *ri* :start-log)
+  (send *robot* :reset-pose)
+
+  (when (y-or-n-p "move to reset-pose?")
+    (send *ri* :angle-vector (send *robot* :angle-vector))
+    (send *ri* :wait-interpolation)
+    )
+  
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-Fz is))
+    (print (/ sum-diff-mass 10.0))
+    )
+
+  (when (y-or-n-p "pushing robot?")
+    (let ((i 0))
+      (while (< i 10)
+        (check-z)
+;          (let*
+;              ((rleg-fv (send *ri* :force-vector :rleg))
+;               (lleg-fv (send *ri* :force-vector :lleg))
+ ;              (rarm-fv (send *ri* :force-vector :rarm))
+  ;             (larm-fv (send *ri* :force-vector :larm))
+   ;            (rleg-mv (send *ri* :moment-vector :rleg))
+    ;           (lleg-mv (send *ri* :moment-vector :lleg))
+     ;          (rarm-mv (send *ri* :moment-vector :rarm))
+      ;         (larm-mv (send *ri* :moment-vector :larm))
+       ;        )
+;
+ ;           (print 'lleg-force-vector)
+  ;          (print lleg-fv)
+   ;         (print 'rleg-force-vector)
+    ;        (print rleg-fv)
+     ;       (print 'lleg-moment-vector)
+      ;      (print lleg-mv)
+       ;     (print 'rleg-moment-vector)
+        ;    (print rleg-mv)
+         ;   )
+          (setq i (+ i 1))
+
+          )
+      )
+    )
+
+  (initial-pose2 :box-height box-height :step-width step-width :hand-dis hand-dis :com-move com-move :arm-push arm-push)
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-mass is))
+    (print (/ sum-diff-mass 10.0))
+    )
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop st?")
+    (send *ri* :stop-st)
+    )
+  (when (y-or-n-p "put bar, box, or something around chest? ready to stop abc?")
+    (send *ri* :stop-auto-balancer)
+    )
+
+  (let ((i 0))
+    (setq sum-diff-mass 0)
+    (while (< i 10)
+      (check-z)
+      (setq sum-diff-mass (+ diff-Fz sum-diff-mass))
+      (setq i (+ i 1))
+      )
+    (print '(average of diff-mass is))
+    (print (/ sum-diff-mass 10.0))
+    )
+  (when (y-or-n-p "Save log?")
+    (save-log :fname "jikken for chukan-shimon")
+    )
+
+  )
+
+
 
 (defun jikken-shimon-after (&key (box-height 850) (step-width 700) (hand-dis 400) (com-move 100) (arm-push 0))
   (warning-message 4 "log clear~%")

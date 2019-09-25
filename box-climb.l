@@ -373,6 +373,8 @@
   (send *ri* :start-log)
   
   (initial-pose :box-height box-height :step-width step-width :hand-dis hand-dis)
+;;  (send *ri* :set-st-param :is-ik-enable (list t t t t))
+;;  (send *ri* :stop-impedance :arms)
   (stop-auto-control)
   (initial-pose :com-move 350 :box-height box-height :step-width step-width :hand-dis hand-dis)
   (initial-pose :com-move 380 :arm-push 20 :box-height box-height :step-width step-width :hand-dis hand-dis)
