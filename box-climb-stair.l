@@ -4,7 +4,7 @@
 ;; 2. (load "box-climb.l")
 ;; 3. (jaxoninit) 
 ;; 4. make *ri* -> y
-
+;; 5. (walk-up)
 
 
 
