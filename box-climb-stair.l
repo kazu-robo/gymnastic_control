@@ -71,11 +71,11 @@
 
 
 
-(defun walk-up (&key (box-height 200) (stride 300))
+(defun walk-up (&key (box-height 200) (stride 200))
   (send *ri* :go-pos 0.1 0 0)
   (send *ri* :wait-interpolation)
   (send *robot* :reset-pose)
-  (send *robot* :legs :move-end-pos #f(0 0 50)) ;;to curve the knees
+  (send *robot* :legs :move-end-pos #f(0 0 100)) ;;to curve the knees
   (send *ri* :angle-vector (send *robot* :angle-vector))
   (send *ri* :wait-interpolation)
   (send *ri* :set-gait-generator-param
