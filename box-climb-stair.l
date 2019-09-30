@@ -4,6 +4,8 @@
 ;; 2. (load "box-climb.l")
 ;; 3. (jaxoninit) 
 ;; 4. make *ri* -> y
+;; send *ri* :set-gait-generator-param :toe-angle 20
+;; send *ri* :set-gait-generator-param :heel-angle 10
 ;; 5. (walk-up)
 
 
