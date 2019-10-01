@@ -4,8 +4,8 @@
 ;; 2. (load "box-climb.l")
 ;; 3. (jaxoninit) 
 ;; 4. make *ri* -> y
-;; send *ri* :set-gait-generator-param :toe-angle 20
-;; send *ri* :set-gait-generator-param :heel-angle 10
+;; send *ri* :set-gait-generator-param :toe-angle 20  ;;wrote in function so no need to do this in your terminal by hand
+;; send *ri* :set-gait-generator-param :heel-angle 10 ;;same as above
 ;; 5. (walk-up)
 
 
@@ -73,15 +73,17 @@
 
 
 
-(defun walk-up (&key (box-height 200) (stride 200))
+(defun walk-up (&key (box-height 200) (stride 200) (bend-knee-height 100))
   (send *ri* :go-pos 0.1 0 0)
   (send *ri* :wait-interpolation)
   (send *robot* :reset-pose)
-  (send *robot* :legs :move-end-pos #f(0 0 100)) ;;to curve the knees
+  (send *robot* :legs :move-end-pos (float-vector 0 0 bend-knee-height)) ;;to curve the knees
   (send *ri* :angle-vector (send *robot* :angle-vector))
   (send *ri* :wait-interpolation)
   (send *ri* :set-gait-generator-param
         :default-orbit-type :stair
+        :toe-angle 20
+        :heel-angle 10
         :default-step-time 2.5);; default-orbit-type :stair -> foot-moving-orbit is cycroid(default), which causes hitting to the stair, so it changes orbit to up and move forward
   (send *ri* :set-foot-steps
         (list (make-coords :coords (send *robot* :lleg :end-coords :copy-worldcoords) :name :lleg)
