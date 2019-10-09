@@ -6446,4 +6446,13 @@ nil
 nil
 107.irteusgl$ 
 nil
+107.irteusgl
+nil
 107.irteusgl$ 
+nil
+107.irteusgl$ 
+nil
+107.irteusgl$ quit
+[ INFO] [1570429880.410127914, 18024.296000000]: cell* ROSEUS_EXIT(context*, int, cell**)
+[ INFO] [1570429880.411047600, 18024.296000000]: exiting roseus 0
+fukazawa@exiarepair3:~/catkin_ws/jaxon_tutorial/src/gymnastic_control$ 

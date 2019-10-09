@@ -68,7 +68,11 @@
   (send *robot* :fix-leg-to-coords (make-coords))
   (objects (list *robot*))
   ;; (when (y-or-n-p "make *ri*?") (jaxon_red-init))
+  )
 
+(defun initial-set-up (&key (start-pos 0.1))
+  (send *ri* :go-pos start-pos 0 0)
+  (send *ri* :wait-interpolation)
   (warning-message 3 "stop st~%")
   (send *ri* :stop-st)
   (warning-message 3 "(reset-pose)~%")
@@ -79,6 +83,7 @@
   (send *ri* :stop-impedance :arms)
   (warning-message 3 "start st~%")
   (send *ri* :start-st)
+  (send *ri* :set-st-param :emergency-check-mode 0)
   )
 
 
@@ -104,7 +109,7 @@
   )
 
 
-(defun generate-walk-up-motion (&key (box-height 200) (stride 200) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50))
+(defun generate-walk-up-motion (&key (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
   (let* ((fs-list)
 ;         (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
 ;         (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
@@ -121,6 +126,7 @@
                         ))
     (send *robot* :reset-pose)
     (send *robot* :legs :move-end-pos (float-vector 0 0 bend-knee-height)) ;;to curve the knees
+    (send *robot* :torso-waist-p :joint-angle torso-angle)
     ;; (send *ri* :angle-vector (send *robot* :angle-vector))
     ;; (send *ri* :wait-interpolation)
     (send *robot* :move-centroid-on-foot :both '(:lleg :rleg))
@@ -134,6 +140,8 @@
 		:default-step-time step-time
         :default-step-height step-height
         :dt dt
+        ;:solve-angle-vector-args
+        ;(list :root-link-virtual-joint-weight #f(0.1 0.1 0.1 0.01 0.5 0.5))
 		))
 
     (setq av-list nil
@@ -196,6 +204,17 @@
     (send *ri* :angle-vector-sequence-full av-list tm-list :root-coords root-coord-list :zmp zmp-list :optional contact-state-list)
     (send *ri* :wait-interpolation-seq)
     (save-log :fname "walk-up")
+    )
+  )
+
+
+(defun walk-up-demo (&key (start-pos 0) (real t) (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
+  ;;use this after jaxoninit
+  ;;start-pos should be 0.1 when simulate at Choreonoid TASK:=CLIMB_BOX_40
+  (initial-set-up :start-pos start-pos)
+  (generate-walk-up-motion :box-height box-height :stride stride :step-time step-time :step-height step-height :dt dt :debug-view debug-view :bend-knee-height bend-knee-height :torso-angle torso-angle)
+  (when (y-or-n-p "execute-motion Ready?~%")
+    (execute-motion :real real)
     )
   )
 
