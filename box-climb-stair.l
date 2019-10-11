@@ -71,8 +71,8 @@
   )
 
 (defun initial-set-up (&key (start-pos 0.1))
-  (send *ri* :go-pos start-pos 0 0)
-  (send *ri* :wait-interpolation)
+;  (send *ri* :go-pos start-pos 0 0)
+;  (send *ri* :wait-interpolation)
   (warning-message 3 "stop st~%")
   (send *ri* :stop-st)
   (warning-message 3 "(reset-pose)~%")
@@ -134,6 +134,7 @@
     (warning-message 3 "generating walking pattern ...~%")
     (setq *walk-pattern*
 	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
+;;		:default-zmp-offsets (list (list :rleg #f(0 0 0)) (list :lleg #f(0 0 0)))
 		:all-limbs '(:rleg :lleg) ;rarm,larm
 		:init-pose-function #'(lambda ())
 		:debug-view debug-view
@@ -149,11 +150,12 @@
           root-coord-list nil
           contact-state-list nil)
     (setq tm-list nil)
+    (setq additional-av (if (is-choreonoid) #f(0 0 0 0) #f()))
     (dolist (a *walk-pattern*)
       ;; a is like (:angle-vector #f(0 ...) :middle middle :time 0 :other other)
       ;; then, (memq :time a) extracts (:time 0 :other other)
       ;; (push (concatenate float-vector (cadr (memq :angle-vector a)) #f(-80 80 -80 80)) av-list)
-      (push (concatenate float-vector (cadr (memq :angle-vector a)) #f(0 0 0 0)) av-list)
+      (push (concatenate float-vector (cadr (memq :angle-vector a)) additional-av) av-list)
       (push (cadr (memq :zmp a)) zmp-list)
       (push (cadr (memq :root-coords a)) root-coord-list)
       (push
@@ -200,17 +202,23 @@
       ;; (unix:usleep (* 1000 tm))
       )
 
+    (warning-message 3 "interpoltaion-mode linear~%")
+    (send *ri* :set-interpolation-mode :linear)
     (warning-message 3 "move~%")
     (send *ri* :angle-vector-sequence-full av-list tm-list :root-coords root-coord-list :zmp zmp-list :optional contact-state-list)
     (send *ri* :wait-interpolation-seq)
+    (warning-message 3 "interpoltaion-mode hoffarbib~%")
+    (send *ri* :set-interpolation-mode :hoffarbib)
     (save-log :fname "walk-up")
     )
   )
 
 
-(defun walk-up-demo (&key (start-pos 0) (real t) (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
+(defun walk-up-demo (&key (start-pos 0) (real t) (box-height 200) (stride 250) (step-time 5) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
   ;;use this after jaxoninit
   ;;start-pos should be 0.1 when simulate at Choreonoid TASK:=CLIMB_BOX_40
+  ;;do go-pos 0.1 0 0 when choreonoid
+  ;;when real machine, put 20cm-box 5cm away from jaxonred's foot
   (initial-set-up :start-pos start-pos)
   (generate-walk-up-motion :box-height box-height :stride stride :step-time step-time :step-height step-height :dt dt :debug-view debug-view :bend-knee-height bend-knee-height :torso-angle torso-angle)
   (when (y-or-n-p "execute-motion Ready?~%")
