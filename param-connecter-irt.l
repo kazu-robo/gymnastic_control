@@ -107,15 +107,16 @@
   
   ;; ;; (setq key-zmp (send *robot* :centroid))
   (setq av-list (list))
-  (setq prev-tm 0)
+  (setq prev-tm 100)
   (setq tm-list-for-seq (list))
   (setq zmp-list (list))
   (setq rc-list (list))
   (setq cs-list (list))
   (setq wrench-list (list))
-  (dotimes (i (length *rs-list*))
-    (setq rs (car *rs-list*))
-    (setq *rs-list* (cdr *rs-list*))
+  (setq rs-list-tmp *rs-list*)
+  (dotimes (i (length rs-list-tmp))
+    (setq rs (car rs-list-tmp))
+    (setq rs-list-tmp (cdr rs-list-tmp))
     (setq av-list (push (send rs :angle-vector) av-list))
     (setq tm-list-for-seq
           (push
@@ -130,15 +131,24 @@
       (if (equal (car cs) :support)
           (push 1 cs-now)
         (push 0 cs-now))
+      (setq cs (cdr cs))
       )
     (setq cs-now (reverse cs-now))
     (setq cs-one (car cs-now))
     (setq cs-two (car (cdr cs-now)))
-    (setq cs-arm (cdr (cdr cs-now)))
+    (setq cs-three (car (cdr (cdr cs-now))))
+    (setq cs-four (car (cdr (cdr (cdr cs-now)))))
     (setq cs-now (list))
+    (push 1.5 cs-now);;contact phase time
+    (push 1.5 cs-now)
+    (push 1.5 cs-now)
+    (push 1.5 cs-now)
+    (push 1.5 cs-now)
+    (push 1.5 cs-now)
     (push cs-two cs-now)
     (push cs-one cs-now)
-    (push cs-arm cs-now)
+    (push cs-four cs-now)
+    (push cs-three cs-now)
     (push 0 cs-now)
     (push 0 cs-now)
     (setq cs-list (push cs-now cs-list))
@@ -263,7 +273,7 @@
   )
 
 (defun make-key-pose (&key (com-offset -50) (key-arm-height 0));;(&key (leg-xpos-target 800) (leg-zpos-target 50))
-  (pose0)
+  ;; (pose0)
   ;; (send *robot* :arms :move-end-pos (float-vector (- 0 key-arm-height) 0 500))
   (let* (
 	 (centroid-coords
@@ -304,7 +314,7 @@
     ;; (setq key-rc (send *robot* :copy-worldcoords))
     ;; (setq key-zmp (send *robot* :centroid))
 
-    (setq finger-av (scale 68 #f(-1 1 -1 1)))
+    (setq finger-av (scale 60 #f(-1 1 -1 1)))
     ;; (setq finger-av (scale 65 #f(-1 1 -1 1)))
     ;; (setq finger-av (scale 70 #f(-1 1 -1 1)));;without touch, not move much at start-st
     ;; (if (and (is-choreonoid) (equal (length pose0-av) 33))

@@ -357,3 +357,84 @@
     (execute-motion :real real)
     )
   )
+
+
+
+(defun generate-climb-edge-motion-part2 (&key (box-height 600) (stride 250) (step-time 10) (step-height 400) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 32.9) (arm-xpos-target 200) (arm-ypos-target 50) (arm-zpos-offset 50) (rarm-ypos-offset 0) (lleg-ypos-offset 0))
+  (let* ((fs-list)
+
+         (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
+         (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
+         (rleg-end-coords (send *robot* :rleg :end-coords :copy-worldcoords))
+         (lleg-end-coords (send *robot* :lleg :end-coords :copy-worldcoords))
+         )
+    (setq fs-list (list (send (make-coords :coords (send rleg-end-coords :copy-worldcoords) :name :rleg) :translate (float-vector 0 0 0) :world)
+                        (send (make-coords :coords (send lleg-end-coords :copy-worldcoords) :name :lleg) :translate (float-vector stride 0 box-height) :world)
+                        (send (make-coords :coords (send rleg-end-coords :copy-worldcoords) :name :rleg) :translate (float-vector stride 0 box-height) :world)
+
+                        ))
+    (send *robot* :reset-pose)
+    (send *robot* :legs :move-end-pos (float-vector 0 0 bend-knee-height)) ;;to curve the knees
+    (send *robot* :arms :elbow-p :joint-angle -60)
+    (send *robot* :legs :crotch-p :joint-angle -30)
+    (send *robot* :torso-waist-p :joint-angle torso-angle)
+    (initial-pose :box-height box-height :arm-xpos-target arm-xpos-target :arm-ypos-target arm-ypos-target :arm-zpos-offset arm-zpos-offset :rarm-ypos-offset rarm-ypos-offset)
+    ;; (send *ri* :angle-vector (send *robot* :angle-vector))
+    ;; (send *ri* :wait-interpolation)
+    (send *robot* :move-centroid-on-foot :both '(:lleg :rleg :larm :rarm))
+    (send *robot* :fix-leg-to-coords (make-coords))
+    (warning-message 3 "generating walking pattern ...~%")
+    (setq *walk-pattern*
+	  (send *robot* :calc-walk-pattern-from-footstep-list fs-list
+		:all-limbs '(:rleg :lleg :rarm :larm) 
+		:init-pose-function #'(lambda ())
+		:debug-view debug-view
+		:default-step-time step-time
+        :default-step-height step-height
+        :dt dt
+        ;:solve-angle-vector-args
+        ;(list :root-link-virtual-joint-weight #f(0.1 0.1 0.1 0.01 0.5 0.5))
+		))
+
+    (setq av-list nil
+          zmp-list nil
+          root-coord-list nil
+          contact-state-list nil)
+    (setq tm-list nil)
+    (dolist (a *walk-pattern*)
+      ;; a is like (:angle-vector #f(0 ...) :middle middle :time 0 :other other)
+      ;; then, (memq :time a) extracts (:time 0 :other other)
+      (push (concatenate float-vector (cadr (memq :angle-vector a)) #f(-80 80 -80 80)) av-list)
+      (push (cadr (memq :zmp a)) zmp-list)
+      (push (cadr (memq :root-coords a)) root-coord-list)
+      (push
+       (concatenate float-vector (mapcar #'(lambda (cs) (if (equal :support cs) 1 0)) (cadr (memq :contact-state a))) '(1 1 1 1)) ;; need to support arm contact
+       ;; contact states: cs, remain phase time: pt
+       ;; '(rleg-cs lleg-cs rarm-cs larm-cs rleg-pt lleg-pt rarm-pt larm-pt)
+       contact-state-list)
+      ;; (push (* 1000 (cadr (memq :time a))) tm-list) ;; convert from sec to msec
+      (push (* 1000 dt) tm-list) ;; convert from sec to msec
+      )
+    (nreverse av-list)
+    (nreverse zmp-list)
+    (nreverse root-coord-list)
+    (nreverse contact-state-list)
+    (nreverse tm-list)
+
+    )
+  )
+
+(defun generate-climb-edge-motion (&key (box-height 600) (stride 350) (step-time 10) (step-height 200) (dt 0.02) (debug-view :no-message) (bend-knee-height 0) (torso-angle 32.9) (arm-xpos-target 400) (arm-ypos-target 0) (arm-zpos-offset 70) (rarm-ypos-offset 0) (lleg-ypos-offset 0))
+  (restart)
+  (generate-climb-edge-motion-part2 :box-height box-height :stride stride :step-time step-time :step-height step-height :dt dt :debug-view debug-view :bend-knee-height bend-knee-height :torso-angle torso-angle :arm-xpos-target arm-xpos-target :arm-ypos-target arm-ypos-target :arm-zpos-offset arm-zpos-offset :rarm-ypos-offset rarm-ypos-offset :lleg-ypos-offset lleg-ypos-offset)
+  )
+
+(defun climb-edge-demo (&key (start-pos 0) (real t) (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
+  ;;use this after jaxoninit
+  ;;start-pos should be 0.1 when simulate at Choreonoid TASK:=CLIMB_BOX_40
+  (initial-set-up :start-pos start-pos)
+  (generate-climb-edge-motion :box-height box-height :stride stride :step-time step-time :step-height step-height :dt dt :debug-view debug-view :bend-knee-height bend-knee-height :torso-angle torso-angle)
+  (when (y-or-n-p "execute-motion Ready?~%")
+    (execute-motion :real real)
+    )
+  )

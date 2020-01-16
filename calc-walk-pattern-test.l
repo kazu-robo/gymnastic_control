@@ -288,6 +288,7 @@
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
                       :default-step-height 30
+                      ;; :dt 0.01
                       )
           )
     )
@@ -316,6 +317,7 @@
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
                       :default-step-height 30
+                      ;; :dt 0.01
                       )
           )
     )
