@@ -109,7 +109,7 @@
   )
 
 
-(defun generate-walk-up-motion (&key (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
+(defun generate-walk-up-motion-part2 (&key (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
   (let* ((fs-list)
 ;         (rarm-end-coords (send *robot* :rarm :end-coords :copy-worldcoords))
 ;         (larm-end-coords (send *robot* :larm :end-coords :copy-worldcoords))
@@ -173,6 +173,16 @@
     (nreverse tm-list)
 
     )
+  )
+
+(defun restart ()
+  (send *robot* :reset-pose)
+  (send *robot* :fix-leg-to-coords (make-coords))
+  )
+
+(defun generate-walk-up-motion (&key (box-height 200) (stride 250) (step-time 10) (step-height 210) (dt 0.02) (debug-view :no-message) (bend-knee-height 50) (torso-angle 30))
+  (restart)
+  (generate-walk-up-motion-part2 :box-height box-height :stride stride :step-time step-time :step-height step-height :dt dt :debug-view debug-view :bend-knee-height bend-knee-height :torso-angle torso-angle)
   )
 
 (defun execute-motion (&key (real t) (bend-knee-height 50))
