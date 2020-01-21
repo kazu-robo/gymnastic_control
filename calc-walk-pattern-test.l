@@ -85,6 +85,20 @@
     )
   )
 
+
+(defun change-leg-end-coords-to-thigh ();;leg-end-coordsを膝裏へ移動
+  (let* ((rleg-new-coords (send (send (send (send *robot* :rleg :knee-p :parent-link) :copy-worldcoords) :rotate (deg2rad 90) :y) :translate #f(100 0 0)))
+         (lleg-new-coords (send (send (send (send *robot* :lleg :knee-p :parent-link) :copy-worldcoords) :rotate (deg2rad 90) :y) :translate #f(100 0 0)))
+         )
+    (setq rleg-new-coords (make-cascoords :coords rleg-new-coords :name :rleg-end-coords))
+    (setq lleg-new-coords (make-cascoords :coords lleg-new-coords :name :lleg-end-coords))
+    (send (send *robot* :rleg :knee-p :parent-link) :assoc rleg-new-coords)
+    (send (send *robot* :lleg :knee-p :parent-link) :assoc lleg-new-coords)
+    (send *robot* :change-end-coords :rleg rleg-new-coords)
+    (send *robot* :change-end-coords :lleg lleg-new-coords)
+    )
+  )
+
 (defun fullbody-ik (rleg-tc lleg-tc rarm-tc larm-tc)
   (let* ((move-target-list (append (mapcar #'(lambda (limb) (send *robot* limb :end-coords)) (list :rleg :lleg :rarm :larm))
                                    (list (send *robot* :get :waist-coords) (send *robot* :get :chest-coords))))
@@ -237,6 +251,24 @@
     )
   )
 
+
+(defun sitting-init-pose2 ();;座り移動動作の初期姿勢
+  ;; (when (and (boundp '*sitting-angle-vector*) (boundp '*sitting-coords*))
+  ;;   (send *robot* :angle-vector *sitting-angle-vector*)
+  ;;   (send *robot* :transform (send (car (send *robot* :links)) :transformation *sitting-coords* :world) :world)
+  ;;   (objects (list *robot* *box* (send *robot* :rleg :end-coords) (send *robot* :lleg :end-coords) (send *robot* :rarm :end-coords) (send *robot* :larm :end-coords)))
+  ;;   (return-from sitting-init-pose t)
+  ;;   )
+  (send *robot* :reset-pose)
+  (send *robot* :fix-leg-to-coords (make-coords))
+  (setq *box* (make-cube 1000 2000 700))
+  (send *box* :translate #f(500 0 350))
+  (send *robot* :move-coords (make-coords :pos #f(133.027 86.451 886.373) :rot #2f((-0.999995 -0.001581 0.002839) (0.001585 -0.999998 0.001425) (0.002837 0.00143 0.999995))) (car (send *robot* :links)))
+  (send *robot* :angle-vector #f(-0.00125 0.000429 -90.0 100.0 -41.2631 -0.059189 -0.001299 0.048607 -90.0 100.0 -41.3527 -0.006105 -0.041261 0.0 0.000185 -5.729886e-07 0.002006 43.9041 69.8959 -28.6728 12.2567 -79.6918 -24.1632 -4.92543 5.69747 -42.309 70.0927 26.4068 -13.7306 -81.0846 23.8146 7.61558 6.38332))
+  (objects (list *robot* *box* (send *robot* :rleg :end-coords) (send *robot* :lleg :end-coords) (send *robot* :rarm :end-coords) (send *robot* :larm :end-coords)))
+  )
+  
+
 (defun seated-walk1 ();;膝裏を離して戻す？
   (let* ((ik-args
            (list 
@@ -268,8 +300,8 @@
 (defun seated-walk2 ();;座り水平移動(rotation-axisをtにすると全身が水平移動するが一部IKが解けない、nilにするとIKは解けるが膝裏のみ移動しているような動作になる)
   (let* ((ik-args
            (list 
-             :rotation-axis (list nil nil t t)
-             :translation-axis (list :x :x t t)
+             :rotation-axis (list t t t t)
+             :translation-axis (list t t t t)
              :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.5 0.1)
              )
            )
@@ -289,6 +321,108 @@
                       :solve-angle-vector-args ik-args
                       :default-step-height 30
                       ;; :dt 0.01
+                      )
+          )
+    )
+  )
+
+(defun sit-down ();;after seated-walk2
+  (send *robot* :legs :crotch-p :joint-angle -90)
+  (send *robot* :arms :move-end-pos #f(-70 0 0))
+  (send *robot* :translate #f(0 0 -62))
+  )
+  
+(defun seated-walk2-tmp ();;座り水平移動(rotation-axisをtにすると全身が水平移動するが一部IKが解けない、nilにするとIKは解けるが膝裏のみ移動しているような動作になる)
+  (let* ((ik-args
+           (list 
+             ;; :rotation-axis (list nil nil t t)
+             :rotation-axis (list t t t t)
+             :translation-axis (list t t t t)
+             :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.5 0.1)
+             )
+           )
+         (footstep-list)
+         (dis 30)
+         )
+    (setq footstep-list
+          (list
+            (list (make-coords :coords (send *robot* :rarm :end-coords :copy-worldcoords) :name :rarm)
+                  (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm))
+            (list (make-coords :coords (send (send *robot* :rleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rleg)
+                  (make-coords :coords (send (send *robot* :lleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :lleg))
+            (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
+                  (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
+            ))
+    (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
+                      footstep-list :debug-view :no-message
+                      :all-limbs '(:rleg :lleg :rarm :larm)
+                      :init-pose-function #'(lambda ())
+                      :solve-angle-vector-args ik-args
+                      :default-step-height 30
+                      :dt 0.01
+                      )
+          )
+    )
+  )
+
+(defun seated-walk2-after ();;座り水平移動(rotation-axisをtにすると全身が水平移動するが一部IKが解けない、nilにするとIKは解けるが膝裏のみ移動しているような動作になる)
+  (let* ((ik-args
+           (list 
+             :rotation-axis (list nil nil t t)
+             ;; :rotation-axis (list t t t t)
+             ;; :translation-axis (list :x :x t t)
+             :translation-axis (list t t t t)
+             :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.5 0.1)
+             )
+           )
+         (footstep-list)
+         )
+    (setq footstep-list
+          (list
+            (list (make-coords :coords (send *robot* :rleg :end-coords :copy-worldcoords) :name :rleg)
+                  (make-coords :coords (send *robot* :lleg :end-coords :copy-worldcoords) :name :lleg))
+            (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate #f(0 50 0) :world) :name :rarm)
+                  (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate #f(0 50 0) :world) :name :larm))
+            ))
+    (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
+                      footstep-list :debug-view :no-message
+                      :all-limbs '(:rleg :lleg :rarm :larm)
+                      :init-pose-function #'(lambda ())
+                      :solve-angle-vector-args ik-args
+                      :default-step-height 30
+                      ;; :dt 0.01
+                      )
+          )
+    )
+  )
+
+(defun sit-right ();;座り水平移動(rotation-axisをtにすると全身が水平移動するが一部IKが解けない、nilにするとIKは解けるが膝裏のみ移動しているような動作になる)
+  (let* ((ik-args
+           (list 
+             :rotation-axis (list t t t t)
+             :translation-axis (list :y :y t t)
+             :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.5 0.1)
+             )
+           )
+         (footstep-list)
+         (dis 100)
+         )
+    (setq footstep-list
+          (list
+            (list (make-coords :coords (send *robot* :rarm :end-coords :copy-worldcoords) :name :rarm)
+                  (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm))
+            (list (make-coords :coords (send (send *robot* :rleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rleg)
+                  (make-coords :coords (send (send *robot* :lleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :lleg))
+            (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
+                  (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
+            ))
+    (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
+                      footstep-list :debug-view :no-message
+                      :all-limbs '(:rleg :lleg :rarm :larm)
+                      :init-pose-function #'(lambda ())
+                      :solve-angle-vector-args ik-args
+                      :default-step-height 30
+                      :dt 0.01
                       )
           )
     )
@@ -380,6 +514,33 @@
   (sitting-init-pose)
   (change-leg-end-coords-to-knee)
   (seated-walk2)
+  (calc-contact-wrench *ret*)
+  (view-motion *rs-list*)
+  )
+
+(defun seated-walk2-tmp-auto ()
+  (sitting-init-pose)
+  (change-leg-end-coords-to-knee)
+  (seated-walk2-tmp)
+  (calc-contact-wrench *ret*)
+  (view-motion *rs-list*)
+  )
+
+(defun seated-walk2-after-auto ()
+  (sitting-init-pose)
+  (change-leg-end-coords-to-knee)
+  (send *robot* :move-coords (make-coords :pos #f(-424.278 14.248 733.671) :rot #2f((0.999254 0.029422 0.024997) (-0.029468 0.999565 0.001456) (-0.024944 -0.002191 0.999686))) (car (send *robot* :links)))
+  (send *robot* :angle-vector #f(11.1151 2.83926 -69.2908 48.8696 21.012 1.195051e-05 10.7202 4.02729 -68.7446 48.8696 21.012 -1.195051e-05 1.06823 7.52032 0.664543 0.0 0.0 18.1424 47.4942 -34.436 22.2183 -69.6967 32.9243 2.12014 10.363 -18.4724 45.2004 29.468 -24.1269 -67.9893 -33.7431 -1.09776 11.2021))
+  (seated-walk2-after)
+  (calc-contact-wrench *ret*)
+  (view-motion *rs-list*)
+  )
+
+
+(defun move-right-auto ()
+  (sitting-init-pose2)
+  (change-leg-end-coords-to-thigh)
+  (sit-right)
   (calc-contact-wrench *ret*)
   (view-motion *rs-list*)
   )
