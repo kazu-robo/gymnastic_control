@@ -45,6 +45,7 @@
   (send *robot* :fix-leg-to-coords (make-coords))
   (objects (list *robot*))
   (set-additional-coords)
+  (load "param-list.l")
   )
 
 (defun set-additional-coords ();;デフォルトのend-coords以外に追加する
@@ -266,6 +267,8 @@
   (send *robot* :move-coords (make-coords :pos #f(133.027 86.451 886.373) :rot #2f((-0.999995 -0.001581 0.002839) (0.001585 -0.999998 0.001425) (0.002837 0.00143 0.999995))) (car (send *robot* :links)))
   (send *robot* :angle-vector #f(-0.00125 0.000429 -90.0 100.0 -41.2631 -0.059189 -0.001299 0.048607 -90.0 100.0 -41.3527 -0.006105 -0.041261 0.0 0.000185 -5.729886e-07 0.002006 43.9041 69.8959 -28.6728 12.2567 -79.6918 -24.1632 -4.92543 5.69747 -42.309 70.0927 26.4068 -13.7306 -81.0846 23.8146 7.61558 6.38332))
   (objects (list *robot* *box* (send *robot* :rleg :end-coords) (send *robot* :lleg :end-coords) (send *robot* :rarm :end-coords) (send *robot* :larm :end-coords)))
+  ;; (send *robot* :arms :move-end-pos #f(50 0 0) :world)
+  (send *robot* :rarm :move-end-pos #f(0 50 0) :world)
   )
   
 
@@ -400,12 +403,19 @@
   (let* ((ik-args
            (list 
              :rotation-axis (list t t t t)
-             :translation-axis (list :y :y t t)
-             :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.5 0.1)
+             :translation-axis (list t t t t)
+             :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.1 0)
+             :additional-weight-list (list (list (send *robot* :torso :waist-y :child-link) 0.0)
+                                           (list (send *robot* :torso :waist-p :child-link) 0.2)
+                                           (list (send *robot* :rarm :collar-y :child-link) 0.1)
+                                           (list (send *robot* :larm :collar-y :child-link) 0.1))
+             :centroid-thre 400
+             :additional-check #'(lambda () (< (abs (elt (v- (send *robot* :centroid) (send *robot* :larm :end-coords :worldpos)) 0)) 3))
+             :thre (list 10 10 10 10)
              )
            )
          (footstep-list)
-         (dis 100)
+         (dis 50)
          )
     (setq footstep-list
           (list
@@ -421,8 +431,11 @@
                       :all-limbs '(:rleg :lleg :rarm :larm)
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
-                      :default-step-height 30
+                      :default-step-height 20
+                      :default-step-time 1.5
+                      ;; :default-step-time 2
                       :dt 0.01
+                      ;; :dt 0.05
                       )
           )
     )
@@ -537,7 +550,7 @@
   )
 
 
-(defun move-right-auto ()
+(defun sit-right-auto ()
   (sitting-init-pose2)
   (change-leg-end-coords-to-thigh)
   (sit-right)
