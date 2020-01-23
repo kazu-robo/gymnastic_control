@@ -45,7 +45,6 @@
   (send *robot* :fix-leg-to-coords (make-coords))
   (objects (list *robot*))
   (set-additional-coords)
-  (load "param-list.l")
   )
 
 (defun set-additional-coords ();;デフォルトのend-coords以外に追加する
@@ -423,8 +422,8 @@
                   (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm))
             (list (make-coords :coords (send (send *robot* :rleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rleg)
                   (make-coords :coords (send (send *robot* :lleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :lleg))
-            (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
-                  (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
+            ;; (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
+            ;;       (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
             ))
     (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
                       footstep-list :debug-view :no-message
@@ -432,7 +431,7 @@
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
                       :default-step-height 20
-                      :default-step-time 1.5
+                      :default-step-time 3
                       ;; :default-step-time 2
                       :dt 0.01
                       ;; :dt 0.05
@@ -440,6 +439,48 @@
           )
     )
   )
+
+;; (defun hand-move ();;座り水平移動(rotation-axisをtにすると全身が水平移動するが一部IKが解けない、nilにするとIKは解けるが膝裏のみ移動しているような動作になる)
+;;   (let* ((ik-args
+;;            (list 
+;;              :rotation-axis (list t t t t)
+;;              :translation-axis (list t t t t)
+;;              :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.1 0)
+;;              :additional-weight-list (list (list (send *robot* :torso :waist-y :child-link) 0.0)
+;;                                            (list (send *robot* :torso :waist-p :child-link) 0.2)
+;;                                            (list (send *robot* :rarm :collar-y :child-link) 0.1)
+;;                                            (list (send *robot* :larm :collar-y :child-link) 0.1))
+;;              :centroid-thre 400
+;;              :additional-check #'(lambda () (< (abs (elt (v- (send *robot* :centroid) (send *robot* :larm :end-coords :worldpos)) 0)) 3))
+;;              :thre (list 10 10 10 10)
+;;              )
+;;            )
+;;          (footstep-list)
+;;          (dis 50)
+;;          )
+;;     (setq footstep-list
+;;           (list
+;;             ;; (list (make-coords :coords (send *robot* :rarm :end-coords :copy-worldcoords) :name :rarm)
+;;             ;;       (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm))
+;;             (list (make-coords :coords (send *robot* :rleg :end-coords :copy-worldcoords) :name :rleg)
+;;                   (make-coords :coords (send *robot* :lleg :end-coords :copy-worldcoords) :name :lleg))
+;;             (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
+;;                   (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
+;;             ))
+;;     (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
+;;                       footstep-list :debug-view :no-message
+;;                       :all-limbs '(:rleg :lleg :rarm :larm)
+;;                       :init-pose-function #'(lambda ())
+;;                       :solve-angle-vector-args ik-args
+;;                       :default-step-height 20
+;;                       :default-step-time 1.5
+;;                       ;; :default-step-time 2
+;;                       :dt 0.01
+;;                       ;; :dt 0.05
+;;                       )
+;;           )
+;;     )
+;;   )
 
 (defun seated-walk3 ();;座り前進移動
   (let* ((ik-args
@@ -556,4 +597,31 @@
   (sit-right)
   (calc-contact-wrench *ret*)
   (view-motion *rs-list*)
+  (setq *sit-right-move* *rs-list*)
+  )
+
+
+;; (defun arm-move ()
+;;   (send *robot* :arms :move-end-pos #f(0 50 50) :world)
+;;   (send *ri* :angle-vector (send *robot* :angle-vector))
+;;   (send *robot* :arms :move-end-pos #f(0 0 -50) :world)
+;;   (send *ri* :angle-vector (send *robot* :angle-vector))
+;;   (send *ri* :angle-vector-sequence-full (list (car av-list-seq)) (list 10000) :fsensor-length fnum :root-coords (list (car rc-list)) :zmp (list (car zmp-list)) :wrench (list (car wrench-list)) :optional (list (car cs-list)))
+;;   )
+
+
+  
+;; (defun hand-move-auto ()
+;;   (send *robot* :move-coords (make-coords :pos #f(152.838 136.346 884.711) :rot #2f((-0.986347 -0.002765 0.164656) (0.002926 -0.999995 0.000734) (0.164654 0.001206 0.986351))) (car (send *robot* :links)))
+;;   (send *robot* :angle-vector #f(0.063478 0.024051 -80.685 100.0 -41.2631 -0.059189 0.055625 0.071614 -80.6853 100.0 -41.3527 -0.006105 -4.11011 22.1896 0.000185 -5.729886e-07 0.002006 23.7694 40.7738 -61.2952 44.087 -83.7723 -40.437 -16.5019 1.15739 -18.3607 56.0922 70.4297 -37.7342 -90.9572 45.8661 24.1926 -1.66276))
+;;   (change-leg-end-coords-to-thigh)
+;;   (hand-move)
+;;   (calc-contact-wrench *ret*)
+;;   (view-motion *rs-list*)
+;;   (setq *hand-move* *rs-list*)
+;;   )
+
+
+(defun save-param (&key (filename "tmp-param-file.l"))
+  (dump-loadable-structure filename av-list tm-list-for-seq zmp-list rc-list wrench-list cs-list)
   )

@@ -221,7 +221,7 @@
   (warning-message 3 "stop st~%")
   (send *ri* :stop-st)
   (warning-message 3 "(reset-pose)~%")
-  (reset-pose :contact-state-list '(1 1 0 0 0 0))
+  ;; (reset-pose :contact-state-list '(1 1 0 0 0 0))
   (unix:sleep 10)
   (warning-message 3 "stop abc~%")
   (send *ri* :stop-auto-balancer)
@@ -236,7 +236,7 @@
   (send *ri* :set-st-param :eefm-zmp-delay-time-const #f(0 0));;一時進み要素的なやつのパラメータ０にするやつ
   (send *ri* :set-st-param :is-feedback-control-enable (list t t t t t t));;再分配可能にする？
   (send *ri* :set-st-param :eefm-ee-forcemoment-distribution-weight
-        (list #f(0 0 1 1 1 0) #f(0 0 1 1 1 0) #f(0 0 1 0 0 0) #f(0 0 1 0 0 0) #f(0 0 1 1 1 0) #f(0 0 1 1 1 0)));;zmp再分配の重み
+        (list #f(0 0 1 1 1 0) #f(0 0 1 1 1 0) #f(0 0 1 0 0 0) #f(0 0 1 0 0 0) #f(0 0 1 0 0 0) #f(0 0 1 0 0 0)));;zmp再分配の重み
   
   (warning-message 3 "start st~%")
   (send *ri* :start-st)
@@ -441,7 +441,19 @@
 (defun seq-full-initial-info ()
     (send *ri* :angle-vector-sequence-full (list (car av-list-seq)) (list (car tm-list-for-seq)) :fsensor-length fnum :root-coords (list (car rc-list)) :zmp (list (car zmp-list)) :wrench (list (car wrench-list)) :optional (list (car cs-list)))
   (send *ri* :wait-interpolation-seq)
-)
+  )
+
+(defun arm-move ()
+  (send *robot* :arms :move-end-pos #f(0 50 50) :world)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+  (send *robot* :arms :move-end-pos #f(0 0 -50) :world)
+  (send *ri* :angle-vector (send *robot* :angle-vector))
+  (send *ri* :wait-interpolation)
+  (unix:sleep 1)
+  (send *ri* :angle-vector-sequence-full (list (car av-list-seq)) (list 10000) :fsensor-length fnum :root-coords (list (car rc-list)) :zmp (list (car zmp-list)) :wrench (list (car wrench-list)) :optional (list (car cs-list)))
+  (send *ri* :wait-interpolation-seq)
+  )
 
 (defun execute-motion (&key (real t))
 
@@ -463,7 +475,9 @@
     (send *ri* :angle-vector-sequence-full av-list-seq tm-list-for-seq :fsensor-length fnum :root-coords rc-list :zmp zmp-list :wrench wrench-list :optional cs-list);;attention for fnum!! determined in get-param  wrenchの順番。大丈夫そうな雰囲気だったけど
     (warning-message 3 "wait~%")
     (send *ri* :wait-interpolation-seq)
-    (unix:sleep 10)
+    (unix:sleep 2)
+    ;; (arm-move)
+    (unix:sleep 1)
     (warning-message 3 "interpoltaion-mode hoffarbib~%")
     (send *ri* :set-interpolation-mode :hoffarbib)
     (save-log :fname "sit-again")
