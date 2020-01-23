@@ -268,6 +268,22 @@
   (objects (list *robot* *box* (send *robot* :rleg :end-coords) (send *robot* :lleg :end-coords) (send *robot* :rarm :end-coords) (send *robot* :larm :end-coords)))
   ;; (send *robot* :arms :move-end-pos #f(50 0 0) :world)
   (send *robot* :rarm :move-end-pos #f(0 50 0) :world)
+
+  ;; (send *robot* :move-centroid-on-foot :both '(:lleg :rleg :larm :rarm)
+  ;;       ;; :target-centroid-pos (float-vector 132 90 978)
+  ;;       :target-centroid-pos (float-vector (elt (send *robot* :larm :end-coords :worldpos) 0) 90 978)
+  ;;       :rotation-axis (list t t t t) :translation-axis (list :y :y t t)
+  ;;       :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.1 0)
+  ;;       :additional-weight-list (list (list (send *robot* :torso :waist-y :child-link) 0.0)
+  ;;                                     (list (send *robot* :torso :waist-p :child-link) 0.2)
+  ;;                                     (list (send *robot* :rarm :collar-y :child-link) 0.1)
+  ;;                                     (list (send *robot* :larm :collar-y :child-link) 0.1))
+  ;;       :centroid-thre 2
+  ;;       )
+
+  (send *robot* :move-coords (make-coords :pos #f(219.551 85.341 884.445) :rpy #f(3.14 -0.169 0.002)) (car (send *robot* :links)))
+  (send *robot* :angle-vector #f(-0.052056 -0.156539 -81.3524 90.8169 -31.2144 0.085246 0.052558 0.172699 -81.3663 90.8316 -31.3038 -0.16507 6.34699 19.9889 0.000185 -5.729886e-07 0.002006 19.0144 51.9588 -84.3556 39.261 -93.4296 -55.4062 -18.3947 0.727848 -28.6213 36.9471 59.9298 -45.243 -82.6258 48.1669 13.6083 1.80911))
+  ;; このangle-vector送らないバージョンで試した際の50列目を取り出してそこを初期姿勢に
   )
   
 
@@ -403,6 +419,8 @@
            (list 
              :rotation-axis (list t t t t)
              :translation-axis (list t t t t)
+             ;; :rotation-axis (list t t t t)
+             ;; :translation-axis (list :y :y t t)
              :root-link-virtual-joint-weight #f(0.5 0.1 0.1 0.1 0.1 0)
              :additional-weight-list (list (list (send *robot* :torso :waist-y :child-link) 0.0)
                                            (list (send *robot* :torso :waist-p :child-link) 0.2)
@@ -410,7 +428,7 @@
                                            (list (send *robot* :larm :collar-y :child-link) 0.1))
              :centroid-thre 400
              :additional-check #'(lambda () (< (abs (elt (v- (send *robot* :centroid) (send *robot* :larm :end-coords :worldpos)) 0)) 3))
-             :thre (list 10 10 10 10)
+             :thre (list 2 2 2 2)
              )
            )
          (footstep-list)
@@ -418,6 +436,10 @@
          )
     (setq footstep-list
           (list
+            ;; (list (make-coords :coords (send *robot* :rarm :end-coords :copy-worldcoords) :name :rarm)
+            ;;       (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm)
+            ;;       (make-coords :coords (send *robot* :rleg :end-coords :copy-worldcoords) :name :rleg)
+            ;;       (make-coords :coords (send *robot* :lleg :end-coords :copy-worldcoords) :name :lleg))
             (list (make-coords :coords (send *robot* :rarm :end-coords :copy-worldcoords) :name :rarm)
                   (make-coords :coords (send *robot* :larm :end-coords :copy-worldcoords) :name :larm))
             (list (make-coords :coords (send (send *robot* :rleg :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rleg)
@@ -425,16 +447,18 @@
             ;; (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
             ;;       (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
             ))
+    (setq zmp-offset (float-vector (elt (send (send *robot* :lleg :end-coords) :inverse-transform-vector (send *robot* :larm :end-coords :worldpos)) 0) 0 0))
     (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
                       footstep-list :debug-view :no-message
                       :all-limbs '(:rleg :lleg :rarm :larm)
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
+                      :default-zmp-offsets (list :rleg zmp-offset :lleg zmp-offset :rarm #f(0 0 0) :larm #f(0 0 0))
                       :default-step-height 20
                       :default-step-time 3
                       ;; :default-step-time 2
-                      :dt 0.01
-                      ;; :dt 0.05
+                      ;; :dt 0.01
+                      :dt 0.05
                       )
           )
     )
