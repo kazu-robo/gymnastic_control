@@ -282,8 +282,10 @@
   ;;       )
 
   (send *robot* :move-coords (make-coords :pos #f(219.551 85.341 884.445) :rpy #f(3.14 -0.169 0.002)) (car (send *robot* :links)))
-  (send *robot* :angle-vector #f(-0.052056 -0.156539 -81.3524 90.8169 -31.2144 0.085246 0.052558 0.172699 -81.3663 90.8316 -31.3038 -0.16507 6.34699 19.9889 0.000185 -5.729886e-07 0.002006 19.0144 51.9588 -84.3556 39.261 -93.4296 -55.4062 -18.3947 0.727848 -28.6213 36.9471 59.9298 -45.243 -82.6258 48.1669 13.6083 1.80911))
+  ;; (send *robot* :angle-vector #f(-0.052056 -0.156539 -81.3524 90.8169 -31.2144 0.085246 0.052558 0.172699 -81.3663 90.8316 -31.3038 -0.16507 6.34699 19.9889 0.000185 -5.729886e-07 0.002006 19.0144 51.9588 -84.3556 39.261 -93.4296 -55.4062 -18.3947 0.727848 -28.6213 36.9471 59.9298 -45.243 -82.6258 48.1669 13.6083 1.80911))
   ;; このangle-vector送らないバージョンで試した際の50列目を取り出してそこを初期姿勢に
+  #f(-0.05054 -0.193385 -80.9327 90.8169 -31.2144 0.085246 0.051646 0.136637 -80.9458 90.8316 -31.3038 -0.16507 5.41588 20.9213 0.000185 -5.729886e-07 0.002006 17.395 48.1163 -83.2447 39.3364 -92.0343 -52.4175 -15.5666 2.83575 -27.4022 37.5333 61.4303 -44.2661 -84.3503 47.5908 14.2699 3.07201);;param-for-height-10?
+  ;; #f(-0.00084 -0.025087 -77.5806 100.0 -41.2631 -0.059189 -0.011255 0.02198 -77.5801 100.0 -41.3527 -0.006105 4.2109 20.7023 0.000185 -5.729886e-07 0.002006 20.752 55.1937 -74.5682 38.7691 -89.5198 -49.0934 -18.3678 -0.540761 -24.1041 40.8965 59.0482 -46.136 -84.7302 43.0066 16.569 3.3136);;param for height 0
   )
   
 
@@ -447,18 +449,19 @@
             ;; (list (make-coords :coords (send (send *robot* :rarm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :rarm)
             ;;       (make-coords :coords (send (send *robot* :larm :end-coords :copy-worldcoords) :translate (float-vector 0 dis 0) :world) :name :larm))
             ))
-    (setq zmp-offset (float-vector (elt (send (send *robot* :lleg :end-coords) :inverse-transform-vector (send *robot* :larm :end-coords :worldpos)) 0) 0 0))
+    (setq zmp-offset (float-vector (- (elt (send (send *robot* :lleg :end-coords) :inverse-transform-vector (send *robot* :larm :end-coords :worldpos)) 0) 0) 0 0))
     (setq *ret* (send *robot* :calc-walk-pattern-from-footstep-list
                       footstep-list :debug-view :no-message
                       :all-limbs '(:rleg :lleg :rarm :larm)
                       :init-pose-function #'(lambda ())
                       :solve-angle-vector-args ik-args
                       :default-zmp-offsets (list :rleg zmp-offset :lleg zmp-offset :rarm #f(0 0 0) :larm #f(0 0 0))
-                      :default-step-height 20
+                      ;; :default-step-height 20
+                      :default-step-height 5
                       :default-step-time 3
                       ;; :default-step-time 2
-                      ;; :dt 0.01
-                      :dt 0.05
+                      :dt 0.01
+                      ;; :dt 0.05
                       )
           )
     )
